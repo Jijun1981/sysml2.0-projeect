@@ -1,0 +1,76 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.0'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'com.diffplug.spotless' version '6.23.3'
+}
+
+group = 'com.sysml.platform'
+version = '1.0.0'
+sourceCompatibility = '17'
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://download.eclipse.org/releases/latest' }
+    maven { url 'https://download.eclipse.org/tools/cdo/maven' }
+}
+
+dependencies {
+    // Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-graphql'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    
+    // GraphQL
+    implementation 'com.graphql-java:graphql-java-extended-scalars:21.0'
+    
+    // EMF & CDO
+    implementation 'org.eclipse.emf:org.eclipse.emf.ecore:2.35.0'
+    implementation 'org.eclipse.emf:org.eclipse.emf.common:2.29.0'
+    implementation 'org.eclipse.emf.cdo:org.eclipse.emf.cdo.server:4.23.0'
+    implementation 'org.eclipse.emf.cdo:org.eclipse.emf.cdo.server.db:4.7.0'
+    
+    // Database
+    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'org.postgresql:postgresql'
+    
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.graphql:spring-graphql-test'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.2.0'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// 架构测试
+task architectureTest(type: Test) {
+    include '**/arch/**'
+    outputs.upToDateWhen { false }
+}
+
+// 性能测试
+task performanceTest(type: Test) {
+    include '**/perf/**'
+    systemProperty 'dataset', System.getProperty('dataset', 'small')
+}
+
+// 代码格式化
+spotless {
+    java {
+        googleJavaFormat()
+        removeUnusedImports()
+    }
+}

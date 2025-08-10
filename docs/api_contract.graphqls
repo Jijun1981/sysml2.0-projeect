@@ -1,0 +1,305 @@
+# SysML v2 API Contract - 单一真相源
+# 这是系统对外API的完整契约定义，所有实现必须遵循此契约
+
+# ========== 基础类型 ==========
+scalar DateTime
+scalar JSON
+
+# ========== 核心模型 ==========
+interface Node {
+  id: ID!
+}
+
+interface Timestamped {
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+interface Auditable {
+  createdBy: String
+  updatedBy: String
+}
+
+# ========== 错误模型（全局统一） ==========
+type Error {
+  code: String!         # 错误码：REQ_CYCLE_DETECTED, CONNECTION_INVALID等
+  messageKey: String!   # i18n消息键
+  path: [String!]!     # 错误路径
+  details: JSON        # 额外信息
+}
+
+# ========== 分页模型（全局统一） ==========
+type PageInfo {
+  total: Int!
+  page: Int!
+  size: Int!
+  hasNext: Boolean!
+  hasPrevious: Boolean!
+}
+
+# ========== Payload模式（全局统一） ==========
+interface MutationPayload {
+  ok: Boolean!
+  error: Error
+}
+
+# ========== Element联合（跨域引用） ==========
+union Element = 
+  | RequirementDefinition 
+  | RequirementUsage
+  | PartDefinition
+  | PartUsage
+  | PortUsage
+  | ConnectionUsage
+
+# ========== 需求域契约 ==========
+type RequirementDefinition implements Node & Timestamped & Auditable {
+  id: ID!
+  reqId: String!      # 业务唯一标识（服务端校验）
+  name: String!
+  text: String
+  parent: RequirementDefinition
+  children: [RequirementDefinition!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: String
+  updatedBy: String
+}
+
+# ========== 结构域契约 ==========
+type PartUsage implements Node & Timestamped {
+  id: ID!
+  name: String!
+  definition: PartDefinition
+  ports: [PortUsage!]!
+  parent: PartUsage
+  children: [PartUsage!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type PortUsage implements Node {
+  id: ID!
+  name: String!
+  direction: PortDirection!  # IN | OUT | INOUT
+  type: PortType!           # POWER | DATA | SIGNAL
+  owner: PartUsage!
+}
+
+type ConnectionUsage implements Node {
+  id: ID!
+  source: PortUsage!
+  target: PortUsage!
+  valid: Boolean!           # 拓扑合法性标记
+}
+
+enum PortDirection {
+  IN
+  OUT
+  INOUT
+}
+
+enum PortType {
+  POWER
+  DATA
+  SIGNAL
+}
+
+# ========== 约束域契约 ==========
+type ConstraintResult {
+  id: ID!
+  constraintId: String!
+  sourceId: String!         # 不建立外键，避免耦合
+  value: Float
+  unit: String
+  status: ResultStatus!     # PASS | FAIL | ERROR
+  computedAt: DateTime!
+  provenance: JSON          # {formula, inputs, version}
+}
+
+enum ResultStatus {
+  PASS
+  FAIL
+  ERROR
+  TIMEOUT
+}
+
+# ========== 追溯域契约 ==========
+type TraceRelation {
+  id: ID!
+  type: TraceType!
+  source: Element!
+  target: Element!
+  evidence: [Evidence!]!    # 只读引用
+  createdAt: DateTime!
+}
+
+type Evidence {
+  id: ID!
+  type: EvidenceType!
+  status: EvidenceStatus!
+  sourceId: String!         # 约束结果或测试结果ID
+  timestamp: DateTime!
+}
+
+enum TraceType {
+  SATISFIES
+  VERIFIES
+  ALLOCATES
+}
+
+enum EvidenceType {
+  CALCULATION
+  TEST
+  REVIEW
+  SIMULATION
+}
+
+enum EvidenceStatus {
+  PASS
+  FAIL
+  PENDING
+}
+
+# ========== 根查询 ==========
+type Query {
+  # 健康检查
+  ok: Boolean!
+  health: HealthStatus!
+  
+  # 需求查询
+  requirement(id: ID!): RequirementDefinition
+  requirements(page: Int = 1, size: Int = 20): RequirementsPage!
+  
+  # 结构查询
+  part(id: ID!): PartUsage
+  parts(page: Int = 1, size: Int = 20): PartsPage!
+  
+  # 追溯查询
+  traces(sourceId: ID, targetId: ID): [TraceRelation!]!
+  coverage(requirementIds: [ID!]!): CoverageMatrix!
+}
+
+type HealthStatus {
+  status: String!  # UP | DOWN
+  components: JSON!
+}
+
+type RequirementsPage {
+  items: [RequirementDefinition!]!
+  pageInfo: PageInfo!
+}
+
+type PartsPage {
+  items: [PartUsage!]!
+  pageInfo: PageInfo!
+}
+
+type CoverageMatrix {
+  requirements: [RequirementCoverage!]!
+  overallCoverage: Float!
+}
+
+type RequirementCoverage {
+  requirement: RequirementDefinition!
+  satisfiedBy: [Element!]!
+  verifiedBy: [Element!]!
+  coverage: Float!
+}
+
+# ========== 变更操作 ==========
+type Mutation {
+  # 需求操作
+  createRequirement(input: CreateRequirementInput!): CreateRequirementPayload!
+  updateRequirement(id: ID!, input: UpdateRequirementInput!): UpdateRequirementPayload!
+  deleteRequirement(id: ID!): DeletePayload!
+  
+  # 结构操作
+  createPart(input: CreatePartInput!): CreatePartPayload!
+  createConnection(sourcePortId: ID!, targetPortId: ID!): CreateConnectionPayload!
+  
+  # 追溯操作
+  createTrace(type: TraceType!, sourceId: ID!, targetId: ID!): CreateTracePayload!
+}
+
+# ========== 输入类型 ==========
+input CreateRequirementInput {
+  reqId: String!
+  name: String!
+  text: String
+  parentId: ID
+}
+
+input UpdateRequirementInput {
+  name: String
+  text: String
+}
+
+input CreatePartInput {
+  name: String!
+  parentId: ID
+}
+
+# ========== Payload类型 ==========
+type CreateRequirementPayload implements MutationPayload {
+  ok: Boolean!
+  error: Error
+  requirement: RequirementDefinition
+}
+
+type UpdateRequirementPayload implements MutationPayload {
+  ok: Boolean!
+  error: Error
+  requirement: RequirementDefinition
+}
+
+type CreatePartPayload implements MutationPayload {
+  ok: Boolean!
+  error: Error
+  part: PartUsage
+}
+
+type CreateConnectionPayload implements MutationPayload {
+  ok: Boolean!
+  error: Error
+  connection: ConnectionUsage
+}
+
+type CreateTracePayload implements MutationPayload {
+  ok: Boolean!
+  error: Error
+  trace: TraceRelation
+}
+
+type DeletePayload implements MutationPayload {
+  ok: Boolean!
+  error: Error
+  deletedId: ID
+}
+
+# ========== 订阅 ==========
+type Subscription {
+  modelChanged: ModelChangeEvent!
+}
+
+type ModelChangeEvent {
+  type: ChangeType!
+  elementId: ID!
+  elementType: String!
+  timestamp: DateTime!
+}
+
+enum ChangeType {
+  CREATED
+  UPDATED
+  DELETED
+}
+
+# ========== 错误码定义（注释形式） ==========
+# REQ_CYCLE_DETECTED - 需求层次形成环
+# REQ_ID_DUPLICATE - 需求ID重复
+# CONNECTION_INVALID - 连接不合法（方向或类型不匹配）
+# PORT_TYPE_MISMATCH - 端口类型不匹配
+# REF_IN_USE - 被引用的对象不能删除
+# FORMULA_PARSE_ERROR - 公式解析错误
+# CONSTRAINT_TIMEOUT - 约束计算超时

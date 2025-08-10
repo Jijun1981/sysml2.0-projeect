@@ -1,0 +1,707 @@
+# Agile Traceability Matrix v5 (MECE严格版)
+# 基于v4调整，严格执行MECE原则和DAG依赖
+
+metadata:
+  project_name: "SysML v2 建模平台"
+  version: "v5-mece"
+  alignment: "Architecture.md v2"
+  scope: [foundation, p1_requirements, p2_structure_property, p3_constraint_analysis, p4_traceability, p5_events_reports]
+  
+  conventions:
+    id_prefix:
+      epic: "EP-"
+      story: "US-"
+      req: "RQ-"
+      testcase: "TC-"
+    story_format: "As <role>, I want <capability>, so that <benefit>"
+    acceptance_style: [list, gherkin]
+  
+  # MECE规则（严格版）
+  mece_rules:
+    - "需求(REQ)：仅管理需求自身CRUD、层次(derive/refine)、查询；不处理跨域关系"
+    - "结构(STRUCT)：Part/Port/Connection建模、拓扑合法性；不做数值计算"
+    - "属性(PROP)：属性类型、单位、量纲、模板；不做计算或关系"
+    - "约束(CONSTRAINT)：公式求值、派生计算、阈值判定；不创建追溯关系"
+    - "追溯(TRACE)：所有跨域关系(satisfy/verify/allocate)、覆盖率；只读消费，不计算"
+    - "事件报表(OUTPUT)：订阅、报表、导出入；纯展现层，不含领域逻辑"
+  
+  # DAG依赖规则（无环）
+  dependency_rules:
+    - "Foundation层内部无依赖环"
+    - "REQ不依赖任何领域Epic，只依赖Foundation"
+    - "STRUCT不依赖REQ，只依赖Foundation"
+    - "PROP不依赖REQ/STRUCT，只依赖Foundation"
+    - "CONSTRAINT依赖PROP/STRUCT，不依赖REQ/TRACE"
+    - "TRACE依赖REQ/STRUCT，只读消费CONSTRAINT结果"
+    - "OUTPUT依赖所有领域Epic，但只读取"
+  
+  performance_baseline:
+    datasets:
+      small: { elements: 100, relationships: 150, description: "开发测试" }
+      medium: { elements: 1000, relationships: 2000, description: "用户验收" }
+      large: { elements: 10000, relationships: 20000, description: "生产负载" }
+    targets:
+      query_p50: { small: 100, medium: 200, large: 500, unit: "ms" }
+      mutation_p50: { small: 200, medium: 400, large: 800, unit: "ms" }
+      subscription_p90: { value: 100, unit: "ms" }
+  
+  roadmap_phases:
+    - phase: Foundation
+      epics: [EP-INFRA, EP-M2-PILOT, EP-API, EP-UI-BASE, EP-NFR]
+      exit_criteria:
+        - "CDO启动，健康检查UP"
+        - "M2注册，round-trip通过"
+        - "GraphQL骨架可用"
+        - "Sirius运行时绑定"
+        - "NFR最小集就位"
+    
+    - phase: P1
+      epics: [EP-REQ]
+      exit_criteria:
+        - "需求CRUD完整"
+        - "层次无环"
+        - "查询P50<200ms"
+    
+    - phase: P2
+      epics: [EP-STRUCT, EP-PROP]
+      exit_criteria:
+        - "结构建模完整"
+        - "连接校验有效"
+        - "属性单位系统就位"
+    
+    - phase: P3
+      epics: [EP-CONSTRAINT]
+      exit_criteria:
+        - "公式求值正确"
+        - "派生值计算完整"
+    
+    - phase: P4
+      epics: [EP-TRACE]
+      exit_criteria:
+        - "跨域关系建立"
+        - "覆盖率矩阵可用"
+    
+    - phase: P5
+      epics: [EP-OUTPUT]
+      exit_criteria:
+        - "事件订阅P90<100ms"
+        - "报表导出完整"
+        - "往返等价验证通过"
+
+epics:
+  # ========== Foundation Phase ==========
+  
+  - id: EP-INFRA
+    name: "基础设施：CDO/EMF/事务"
+    goal: "Lean CDO（单Repository无分支），EMF管理，事务控制"
+    priority: highest
+    status: in_progress
+    dependencies: []
+    stories:
+      - id: US-INFRA-001
+        title: "CDO仓库与事务"
+        user_story:
+          role: "平台维护者"
+          capability: "启动CDO并管理事务"
+          benefit: "模型持久化基础"
+        reqs:
+          - id: RQ-INFRA-CDO-001
+            title: "CDO健康与配置"
+            acceptance:
+              integration: ["GET /health/cdo返回UP"]
+          - id: RQ-INFRA-TX-002
+            title: "事务边界管理"
+            acceptance:
+              unit: ["commit/rollback语义正确"]
+      
+      - id: US-INFRA-002
+        title: "EMF模型管理器"
+        user_story:
+          role: "后端开发"
+          capability: "统一管理EObject生命周期"
+          benefit: "简化模型操作"
+        reqs:
+          - id: RQ-INFRA-EMF-003
+            title: "EMFModelManager"
+            acceptance:
+              unit: ["CRUD操作正确", "DTO映射无损"]
+  
+  - id: EP-M2-PILOT
+    name: "M2模型复用"
+    goal: "集成sysml-v2-pilot，注册包，验证adapter"
+    priority: highest
+    status: in_progress
+    dependencies: [EP-INFRA]
+    stories:
+      - id: US-M2-001
+        title: "M2包注册"
+        user_story:
+          role: "平台维护者"
+          capability: "注册KerML/SysML包"
+          benefit: "类型系统可用"
+        reqs:
+          - id: RQ-M2-REG-001
+            title: "EPackage注册"
+            acceptance:
+              unit: ["Registry包含KerML/SysML"]
+          - id: RQ-M2-FACTORY-002
+            title: "工厂创建"
+            acceptance:
+              unit: ["创建所有核心元素成功"]
+      
+      - id: US-M2-002
+        title: "Adapter往返"
+        user_story:
+          role: "集成工程师"
+          capability: "XMI/JSON往返转换"
+          benefit: "语义保持"
+        reqs:
+          - id: RQ-M2-ROUNDTRIP-003
+            title: "往返等价"
+            acceptance:
+              integration: ["XMI往返等价", "JSON往返等价"]
+  
+  - id: EP-API
+    name: "API契约层"
+    goal: "GraphQL骨架、标量、分页、错误、DataLoader"
+    priority: highest
+    status: in_progress
+    dependencies: [EP-INFRA]
+    stories:
+      - id: US-API-001
+        title: "GraphQL骨架"
+        user_story:
+          role: "前端开发"
+          capability: "访问GraphQL端点"
+          benefit: "统一接口"
+        reqs:
+          - id: RQ-API-ENDPOINT-001
+            title: "端点配置"
+            acceptance:
+              integration: ["POST /graphql可用"]
+          - id: RQ-API-CORE-002
+            title: "核心契约"
+            acceptance:
+              unit: ["标量/分页/错误模型定义"]
+      
+      - id: US-API-002
+        title: "DataLoader优化"
+        user_story:
+          role: "后端开发"
+          capability: "批量加载消除N+1"
+          benefit: "性能优化"
+        reqs:
+          - id: RQ-API-DATALOADER-003
+            title: "DataLoader配置"
+            acceptance:
+              integration: ["nPlusOneCount==0"]
+      
+      - id: US-API-003
+        title: "契约快照"
+        user_story:
+          role: "API管理员"
+          capability: "检测破坏性变更"
+          benefit: "接口稳定"
+        reqs:
+          - id: RQ-API-SNAPSHOT-004
+            title: "Schema快照"
+            acceptance:
+              unit: ["CI检查变更"]
+  
+  - id: EP-UI-BASE
+    name: "UI基础"
+    goal: "Sirius运行时、EMF绑定、基础视图"
+    priority: high
+    status: pending
+    dependencies: [EP-INFRA, EP-M2-PILOT]
+    stories:
+      - id: US-UI-001
+        title: "Sirius运行时"
+        user_story:
+          role: "平台维护者"
+          capability: "启动Sirius绑定CDO"
+          benefit: "建模UI基础"
+        reqs:
+          - id: RQ-UI-RUNTIME-001
+            title: "运行时绑定"
+            acceptance:
+              integration: ["/health/sirius返回UP"]
+      
+      - id: US-UI-002
+        title: "基础视图能力"
+        user_story:
+          role: "建模用户"
+          capability: "使用树/表/图/表单"
+          benefit: "多维编辑"
+        reqs:
+          - id: RQ-UI-VIEWS-002
+            title: "视图类型"
+            acceptance:
+              e2e: ["四种视图可用"]
+  
+  - id: EP-NFR
+    name: "横切NFR最小集"
+    goal: "健康/指标/日志/错误码/鉴权开关"
+    priority: high
+    status: in_progress
+    dependencies: []
+    stories:
+      - id: US-NFR-001
+        title: "可观测性"
+        user_story:
+          role: "运维人员"
+          capability: "监控健康和指标"
+          benefit: "问题定位"
+        reqs:
+          - id: RQ-NFR-HEALTH-001
+            title: "健康检查"
+            acceptance:
+              integration: ["/health聚合所有子系统"]
+          - id: RQ-NFR-METRICS-002
+            title: "指标暴露"
+            acceptance:
+              integration: ["/metrics包含关键指标"]
+          - id: RQ-NFR-LOG-003
+            title: "结构化日志"
+            acceptance:
+              unit: ["traceId/spanId追踪"]
+      
+      - id: US-NFR-002
+        title: "错误管理"
+        user_story:
+          role: "开发者"
+          capability: "统一错误处理"
+          benefit: "一致体验"
+        reqs:
+          - id: RQ-NFR-ERROR-004
+            title: "错误码注册"
+            acceptance:
+              unit: ["code→messageKey映射"]
+      
+      - id: US-NFR-003
+        title: "鉴权开关"
+        user_story:
+          role: "维护者"
+          capability: "dev/prod模式切换"
+          benefit: "开发便利"
+        reqs:
+          - id: RQ-NFR-AUTH-005
+            title: "鉴权模式"
+            acceptance:
+              integration: ["dev无鉴权，prod预留OIDC"]
+  
+  # ========== P1 - Requirements Domain ==========
+  
+  - id: EP-REQ
+    name: "需求域"
+    goal: "需求CRUD、层次(derive/refine)、查询；不处理跨域关系"
+    priority: highest
+    status: pending
+    dependencies: [EP-INFRA, EP-API, EP-M2-PILOT]
+    phase: P1
+    stories:
+      - id: US-REQ-API-000
+        title: "需求域GraphQL契约"
+        user_story:
+          role: "API管理员"
+          capability: "挂载requirements.graphqls"
+          benefit: "契约先行"
+        reqs:
+          - id: RQ-REQ-SCHEMA-000
+            title: "Schema模块挂载"
+            acceptance:
+              unit: ["requirements.graphqls编译通过"]
+              integration: ["纳入全局schema快照"]
+      
+      - id: US-REQ-001
+        title: "需求CRUD"
+        user_story:
+          role: "需求分析师"
+          capability: "创建管理需求"
+          benefit: "需求基线"
+        reqs:
+          - id: RQ-REQ-CRUD-001
+            title: "CRUD操作"
+            acceptance:
+              unit: ["必填验证", "reqId唯一"]
+              integration: ["GraphQL Mutation成功"]
+          - id: RQ-REQ-AUDIT-002
+            title: "审计字段"
+            acceptance:
+              unit: ["时间戳和用户自动填充"]
+      
+      - id: US-REQ-002
+        title: "需求层次"
+        user_story:
+          role: "需求分析师"
+          capability: "建立derive/refine关系"
+          benefit: "需求树"
+        reqs:
+          - id: RQ-REQ-HIERARCHY-003
+            title: "层次DAG"
+            acceptance:
+              unit: ["环检测返回REQ_CYCLE_DETECTED"]
+              integration: ["三层闭环测试失败"]
+      
+      - id: US-REQ-003
+        title: "需求查询"
+        user_story:
+          role: "所有用户"
+          capability: "检索需求"
+          benefit: "快速定位"
+        reqs:
+          - id: RQ-REQ-QUERY-004
+            title: "查询性能"
+            acceptance:
+              integration: ["中等数据集P50<200ms"]
+              perf: ["大数据集P50<500ms"]
+      
+      - id: US-REQ-004
+        title: "需求间关系"
+        user_story:
+          role: "需求分析师"
+          capability: "维护derive/refine（仅需求间）"
+          benefit: "需求网络"
+        reqs:
+          - id: RQ-REQ-RELATION-005
+            title: "需求间关系"
+            acceptance:
+              unit: ["仅允许Req→Req关系"]
+      
+      - id: US-REQ-005
+        title: "需求Sirius视图"
+        user_story:
+          role: "需求分析师"
+          capability: "可视化编辑"
+          benefit: "直观管理"
+        reqs:
+          - id: RQ-REQ-UI-006
+            title: "需求视图"
+            acceptance:
+              e2e: ["树/表视图可用"]
+          - id: RQ-REQ-MODELER-007
+            title: "Modeler文件"
+            acceptance:
+              unit: ["sirius/modelers/requirements.modeler.json存在"]
+  
+  # ========== P2 - Structure & Property ==========
+  
+  - id: EP-STRUCT
+    name: "结构域"
+    goal: "Part/Port/Connection建模、拓扑合法性；不依赖REQ"
+    priority: high
+    status: pending
+    dependencies: [EP-INFRA, EP-API, EP-M2-PILOT]  # 注意：不依赖EP-REQ
+    phase: P2
+    stories:
+      - id: US-STRUCT-API-000
+        title: "结构域GraphQL契约"
+        user_story:
+          role: "API管理员"
+          capability: "挂载structure.graphqls"
+          benefit: "契约先行"
+        reqs:
+          - id: RQ-STRUCT-SCHEMA-000
+            title: "Schema模块挂载"
+            acceptance:
+              unit: ["structure.graphqls编译通过"]
+              integration: ["纳入全局schema快照"]
+      
+      - id: US-STRUCT-001
+        title: "部件管理"
+        user_story:
+          role: "系统工程师"
+          capability: "创建Part层次"
+          benefit: "结构骨架"
+        reqs:
+          - id: RQ-STRUCT-PART-001
+            title: "部件CRUD"
+            acceptance:
+              unit: ["类型验证"]
+              integration: ["50+组件流畅"]
+      
+      - id: US-STRUCT-002
+        title: "端口定义"
+        user_story:
+          role: "系统工程师"
+          capability: "创建Port（方向/类型）"
+          benefit: "接口定义"
+        reqs:
+          - id: RQ-STRUCT-PORT-002
+            title: "端口属性"
+            acceptance:
+              unit: ["in/out/inout方向", "power/data/signal类型"]
+      
+      - id: US-STRUCT-003
+        title: "连接与拓扑校验"
+        user_story:
+          role: "系统工程师"
+          capability: "创建Connection并校验拓扑"
+          benefit: "结构正确"
+        reqs:
+          - id: RQ-STRUCT-CONN-003
+            title: "拓扑合法性（仅结构规则）"
+            acceptance:
+              unit: ["方向匹配out→in", "类型匹配power↔power"]
+              integration: ["非法连接返回CONNECTION_INVALID"]
+      
+      - id: US-STRUCT-004
+        title: "结构Sirius视图"
+        user_story:
+          role: "系统工程师"
+          capability: "图形化编辑"
+          benefit: "可视设计"
+        reqs:
+          - id: RQ-STRUCT-UI-004
+            title: "结构图"
+            acceptance:
+              e2e: ["拖放创建", "非法连接红色"]
+          - id: RQ-STRUCT-MODELER-005
+            title: "Modeler文件"
+            acceptance:
+              unit: ["sirius/modelers/structure.modeler.json存在"]
+  
+  - id: EP-PROP
+    name: "属性域"
+    goal: "属性类型、单位、量纲、模板；不做计算"
+    priority: medium
+    status: pending
+    dependencies: [EP-INFRA, EP-API, EP-M2-PILOT]  # 不依赖REQ/STRUCT
+    phase: P2
+    stories:
+      - id: US-PROP-001
+        title: "属性类型系统"
+        user_story:
+          role: "建模用户"
+          capability: "定义属性类型和单位"
+          benefit: "参数语义"
+        reqs:
+          - id: RQ-PROP-TYPE-001
+            title: "类型与单位"
+            acceptance:
+              unit: ["数值/布尔/字符串", "单位定义"]
+      
+      - id: US-PROP-002
+        title: "属性模板"
+        user_story:
+          role: "建模用户"
+          capability: "定义复用模板"
+          benefit: "快速应用"
+        reqs:
+          - id: RQ-PROP-TEMPLATE-002
+            title: "模板管理"
+            acceptance:
+              integration: ["应用/撤销正确"]
+  
+  # ========== P3 - Constraint & Analysis ==========
+  
+  - id: EP-CONSTRAINT
+    name: "约束分析域"
+    goal: "公式求值、派生计算、阈值判定；不创建追溯"
+    priority: medium
+    status: pending
+    dependencies: [EP-PROP, EP-STRUCT, EP-API]  # 依赖属性和结构，不依赖REQ/TRACE
+    phase: P3
+    stories:
+      - id: US-CONST-001
+        title: "计算模块"
+        user_story:
+          role: "分析工程师"
+          capability: "定义Formula模块"
+          benefit: "自动计算"
+        reqs:
+          - id: RQ-CONST-FORMULA-001
+            title: "公式引擎"
+            acceptance:
+              unit: ["表达式解析", "单位推导"]
+      
+      - id: US-CONST-002
+        title: "派生值计算"
+        user_story:
+          role: "分析工程师"
+          capability: "执行计算回写"
+          benefit: "保持一致"
+        reqs:
+          - id: RQ-CONST-DERIVE-002
+            title: "派生计算"
+            acceptance:
+              integration: ["结果正确", "provenance记录"]
+      
+      - id: US-CONST-003
+        title: "约束校验（数值/阈值）"
+        user_story:
+          role: "验证工程师"
+          capability: "定义数值约束"
+          benefit: "合规检查"
+        reqs:
+          - id: RQ-CONST-CHECK-003
+            title: "约束执行"
+            acceptance:
+              unit: ["阈值判定", "公式求值"]
+              integration: ["结果记录供TRACE消费"]
+  
+  # ========== P4 - Traceability ==========
+  
+  - id: EP-TRACE
+    name: "追溯域"
+    goal: "所有跨域关系(satisfy/verify/allocate)、覆盖率；只读消费"
+    priority: medium
+    status: pending
+    dependencies: [EP-REQ, EP-STRUCT]  # 依赖需求和结构，只读消费CONSTRAINT结果
+    phase: P4
+    stories:
+      - id: US-TRACE-001
+        title: "跨域关系管理"
+        user_story:
+          role: "系统工程师"
+          capability: "建立satisfy/verify/allocate"
+          benefit: "需求追踪"
+        reqs:
+          - id: RQ-TRACE-SATISFY-001
+            title: "Satisfy关系（Req→Struct/Func）"
+            acceptance:
+              integration: ["正反向查询"]
+          - id: RQ-TRACE-VERIFY-002
+            title: "Verify关系（Test→Req）"
+            acceptance:
+              integration: ["关系建立和查询"]
+          - id: RQ-TRACE-ALLOCATE-003
+            title: "Allocate关系（Func→Struct）"
+            acceptance:
+              integration: ["分配关系管理"]
+      
+      - id: US-TRACE-002
+        title: "覆盖率分析"
+        user_story:
+          role: "QA工程师"
+          capability: "生成覆盖率矩阵"
+          benefit: "评估完整性"
+        reqs:
+          - id: RQ-TRACE-COVER-004
+            title: "覆盖率计算（只读聚合）"
+            acceptance:
+              integration: ["矩阵P90<1500ms", "不回写REQ"]
+      
+      - id: US-TRACE-003
+        title: "验证状态消费"
+        user_story:
+          role: "验证工程师"
+          capability: "读取约束结果作为证据"
+          benefit: "自动化验证"
+        reqs:
+          - id: RQ-TRACE-EVIDENCE-005
+            title: "证据收集（只读）"
+            acceptance:
+              integration: ["读取CONSTRAINT结果", "不触发重算"]
+  
+  # ========== P5 - Events/Reports/Export ==========
+  
+  - id: EP-OUTPUT
+    name: "输出层"
+    goal: "订阅、报表、导出入；纯展现"
+    priority: low
+    status: pending
+    dependencies: [EP-REQ, EP-STRUCT, EP-PROP, EP-CONSTRAINT, EP-TRACE, EP-API]
+    phase: P5
+    stories:
+      - id: US-OUTPUT-001
+        title: "事件订阅"
+        user_story:
+          role: "前端用户"
+          capability: "订阅变更"
+          benefit: "实时协作"
+        reqs:
+          - id: RQ-OUTPUT-SUB-001
+            title: "Subscription"
+            acceptance:
+              integration: ["P90<100ms"]
+      
+      - id: US-OUTPUT-002
+        title: "验证报表"
+        user_story:
+          role: "验证工程师"
+          capability: "生成报表"
+          benefit: "质量证据"
+        reqs:
+          - id: RQ-OUTPUT-REPORT-002
+            title: "报表生成（只读）"
+            acceptance:
+              integration: ["JSON/CSV格式"]
+      
+      - id: US-OUTPUT-003
+        title: "导出功能"
+        user_story:
+          role: "建模用户"
+          capability: "导出模型"
+          benefit: "数据交换"
+        reqs:
+          - id: RQ-OUTPUT-EXPORT-003
+            title: "导出格式"
+            acceptance:
+              e2e: ["XMI/JSON导出"]
+      
+      - id: US-OUTPUT-004
+        title: "导入与往返验证"
+        user_story:
+          role: "建模用户"
+          capability: "导入模型并验证往返"
+          benefit: "数据完整性"
+        reqs:
+          - id: RQ-OUTPUT-IMPORT-004
+            title: "导入端点"
+            acceptance:
+              integration: ["POST /import成功"]
+          - id: RQ-OUTPUT-ROUNDTRIP-005
+            title: "往返等价测试"
+            acceptance:
+              e2e: ["导出→导入→导出'语义等价"]
+
+# 错误码定义（分域管理）
+error_codes:
+  req_domain:
+    - { code: "REQ_CYCLE_DETECTED", message_key: "error.req.cycle" }
+    - { code: "REQ_NOT_FOUND", message_key: "error.req.notfound" }
+    - { code: "REQ_ID_DUPLICATE", message_key: "error.req.duplicate" }
+  
+  struct_domain:
+    - { code: "CONNECTION_INVALID", message_key: "error.connection.invalid" }
+    - { code: "PORT_TYPE_MISMATCH", message_key: "error.port.type" }
+    - { code: "PORT_DIRECTION_INVALID", message_key: "error.port.direction" }
+  
+  constraint_domain:
+    - { code: "FORMULA_PARSE_ERROR", message_key: "error.formula.parse" }
+    - { code: "UNIT_MISMATCH", message_key: "error.unit.mismatch" }
+    - { code: "THRESHOLD_EXCEEDED", message_key: "error.threshold.exceeded" }
+  
+  trace_domain:
+    - { code: "INVALID_TRACE_TYPE", message_key: "error.trace.type" }
+    - { code: "TRACE_TARGET_NOT_FOUND", message_key: "error.trace.target" }
+  
+  system:
+    - { code: "REF_IN_USE", message_key: "error.ref.inuse" }
+    - { code: "TRANSACTION_FAILED", message_key: "error.transaction" }
+    - { code: "CONCURRENT_MODIFICATION", message_key: "error.concurrent" }
+
+# 测试策略
+test_strategy:
+  levels:
+    unit: { coverage: 85, focus: "领域逻辑、验证规则" }
+    integration: { coverage: 70, focus: "API契约、事务边界" }
+    e2e: { coverage: 50, focus: "用户流程、视图交互" }
+    performance: { coverage: 30, focus: "查询延迟、并发负载" }
+  
+  data_sets:
+    small: { purpose: "单元测试", setup_time: "< 1s" }
+    medium: { purpose: "集成测试", setup_time: "< 10s" }
+    large: { purpose: "性能测试", setup_time: "< 60s" }
+
+# Sirius Modeler文件路径（契约占位）
+sirius_modelers:
+  - path: sirius/modelers/requirements.modeler.json
+    maps_to: RQ-REQ-MODELER-007
+  - path: sirius/modelers/structure.modeler.json
+    maps_to: RQ-STRUCT-MODELER-005
+  - path: sirius/modelers/constraint.modeler.json
+    maps_to: future
+  - path: sirius/modelers/trace.modeler.json
+    maps_to: future

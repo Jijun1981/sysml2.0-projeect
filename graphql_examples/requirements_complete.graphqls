@@ -1,0 +1,243 @@
+# Requirements Domain - Complete GraphQL Schema
+# 展示统一Payload模式和服务端校验
+
+# ========== 输入类型 ==========
+input CreateRequirementInput {
+  reqId: String!      # 唯一性通过服务端校验
+  name: String!
+  text: String
+  parentId: ID
+  tags: [String!]
+}
+
+input UpdateRequirementInput {
+  name: String
+  text: String
+  parentId: ID
+  tags: [String!]
+}
+
+input RequirementFilter {
+  reqIdContains: String
+  nameContains: String
+  tags: [String!]
+  hasParent: Boolean
+  createdAfter: DateTime
+  updatedAfter: DateTime
+}
+
+enum RequirementSortField {
+  REQ_ID
+  NAME
+  CREATED_AT
+  UPDATED_AT
+}
+
+input RequirementSort {
+  field: RequirementSortField!
+  direction: SortDirection!
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+# ========== 领域类型 ==========
+type RequirementDefinition {
+  id: ID!
+  reqId: String!      # 业务唯一标识
+  name: String!
+  text: String
+  tags: [String!]!
+  
+  # 层次关系（仅需求间）
+  parent: RequirementDefinition
+  children: [RequirementDefinition!]!
+  derivedFrom: [RequirementDefinition!]!
+  refines: [RequirementDefinition!]!
+  
+  # 审计字段
+  createdAt: DateTime!
+  createdBy: String
+  updatedAt: DateTime!
+  updatedBy: String
+  version: Int!
+}
+
+type RequirementUsage {
+  id: ID!
+  definition: RequirementDefinition!
+  parent: RequirementUsage
+  children: [RequirementUsage!]!
+  
+  # 实例特有属性
+  context: String
+  priority: Priority
+}
+
+enum Priority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+# ========== Payload类型（统一模式） ==========
+type CreateRequirementPayload {
+  ok: Boolean!
+  error: Error
+  requirement: RequirementDefinition
+}
+
+type UpdateRequirementPayload {
+  ok: Boolean!
+  error: Error
+  requirement: RequirementDefinition
+}
+
+type DeleteRequirementPayload {
+  ok: Boolean!
+  error: Error
+  deletedId: ID
+  affectedCount: Int
+}
+
+type SetParentPayload {
+  ok: Boolean!
+  error: Error
+  child: RequirementDefinition
+  parent: RequirementDefinition
+}
+
+type QueryRequirementsPayload {
+  ok: Boolean!
+  items: [RequirementDefinition!]!
+  pageInfo: PageInfo!
+  error: Error
+}
+
+type BulkOperationPayload {
+  ok: Boolean!
+  error: Error
+  successCount: Int!
+  failureCount: Int!
+  failures: [BulkOperationError!]!
+}
+
+type BulkOperationError {
+  index: Int!
+  id: String
+  error: Error!
+}
+
+# ========== Mutations ==========
+extend type Mutation {
+  # 基础CRUD
+  createRequirement(input: CreateRequirementInput!): CreateRequirementPayload!
+  updateRequirement(id: ID!, input: UpdateRequirementInput!): UpdateRequirementPayload!
+  deleteRequirement(id: ID!, cascade: Boolean = false): DeleteRequirementPayload!
+  
+  # 层次管理（仅需求间关系）
+  setRequirementParent(childId: ID!, parentId: ID!): SetParentPayload!
+  removeRequirementParent(childId: ID!): SetParentPayload!
+  
+  # 需求间关系（不包含satisfy/verify - 这些在TRACE域）
+  addDerivation(sourceId: ID!, targetId: ID!): UpdateRequirementPayload!
+  addRefinement(sourceId: ID!, targetId: ID!): UpdateRequirementPayload!
+  removeRelation(sourceId: ID!, targetId: ID!, type: RequirementRelationType!): UpdateRequirementPayload!
+  
+  # 批量操作
+  bulkCreateRequirements(inputs: [CreateRequirementInput!]!): BulkOperationPayload!
+  bulkUpdateRequirements(updates: [BulkUpdateInput!]!): BulkOperationPayload!
+  bulkDeleteRequirements(ids: [ID!]!): BulkOperationPayload!
+}
+
+input BulkUpdateInput {
+  id: ID!
+  input: UpdateRequirementInput!
+}
+
+enum RequirementRelationType {
+  DERIVES_FROM
+  REFINES
+  # SATISFIES和VERIFIES移至追溯域
+}
+
+# ========== Queries ==========
+extend type Query {
+  # 单个查询
+  requirement(id: ID!): RequirementDefinition
+  requirementByReqId(reqId: String!): RequirementDefinition
+  
+  # 列表查询（带DataLoader优化）
+  requirements(
+    filter: RequirementFilter
+    sort: RequirementSort
+    page: Int = 1
+    size: Int = 20
+  ): QueryRequirementsPayload!
+  
+  # 层次查询
+  requirementTree(rootId: ID): [RequirementDefinition!]!
+  requirementPath(id: ID!): [RequirementDefinition!]!
+  
+  # 搜索（前缀匹配和全文）
+  searchRequirements(
+    query: String!
+    limit: Int = 20
+  ): [RequirementDefinition!]!
+  
+  # 统计
+  requirementStats: RequirementStatistics!
+}
+
+type RequirementStatistics {
+  totalCount: Int!
+  byPriority: [PriorityCount!]!
+  byTag: [TagCount!]!
+  avgDepth: Float!
+  maxDepth: Int!
+}
+
+type PriorityCount {
+  priority: Priority!
+  count: Int!
+}
+
+type TagCount {
+  tag: String!
+  count: Int!
+}
+
+# ========== Subscriptions ==========
+extend type Subscription {
+  # 需求变更订阅（不包含跨域事件）
+  requirementChanged(
+    filter: RequirementSubscriptionFilter
+  ): RequirementChangeEvent!
+}
+
+input RequirementSubscriptionFilter {
+  ids: [ID!]
+  tags: [String!]
+  includeChildren: Boolean
+}
+
+type RequirementChangeEvent {
+  type: ChangeType!
+  requirement: RequirementDefinition!
+  previousVersion: RequirementDefinition
+  timestamp: DateTime!
+  userId: String
+  changeDetails: JSON
+}
+
+enum ChangeType {
+  CREATED
+  UPDATED
+  DELETED
+  HIERARCHY_CHANGED
+  RELATION_ADDED
+  RELATION_REMOVED
+}

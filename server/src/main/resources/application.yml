@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: sysml-platform
+    
+  profiles:
+    active: dev
+    
+  graphql:
+    graphiql:
+      enabled: true  # 仅在dev环境
+    schema:
+      printer:
+        enabled: true
+      introspection:
+        enabled: ${GRAPHQL_INTROSPECTION_ENABLED:true}  # 生产环境设为false
+        
+  datasource:
+    url: jdbc:h2:./data/app;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    
+server:
+  port: 8080
+  
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,info
+  endpoint:
+    health:
+      show-details: always
+      
+logging:
+  level:
+    root: INFO
+    com.sysml.platform: DEBUG
+    org.eclipse.emf.cdo: INFO
+    graphql: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    
+# CDO配置
+cdo:
+  repository:
+    name: sysml
+    uuid: sysml-repo
+  server:
+    port: 2036
+  lean:
+    no-branches: true
+    no-audits: true
+    no-locks: true
+    
+# 性能配置
+performance:
+  dataloader:
+    batch-size: 100
+    timeout: 5000
+  query:
+    max-depth: 10
+    timeout: 5000
+  mutation:
+    timeout: 10000
+    
+# 缓存配置
+cache:
+  requirements:
+    ttl: 300
+    max-size: 1000

@@ -1,0 +1,37 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/sysmldb}
+    driver-class-name: org.postgresql.Driver
+    username: ${DATABASE_USER:sysml}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      
+  graphql:
+    graphiql:
+      enabled: false
+    schema:
+      introspection:
+        enabled: false  # 生产环境关闭
+        
+server:
+  port: ${PORT:8080}
+  
+logging:
+  level:
+    root: WARN
+    com.sysml.platform: INFO
+  pattern:
+    console: "%d{ISO8601} [%thread] %-5level %logger - %msg%n"
+    
+# 生产环境性能配置
+performance:
+  dataloader:
+    batch-size: 200
+    timeout: 3000
+  query:
+    max-depth: 8
+    timeout: 3000
+  mutation:
+    timeout: 5000
