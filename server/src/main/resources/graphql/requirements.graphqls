@@ -1,0 +1,142 @@
+# 需求域GraphQL契约
+# EP-REQ: 需求CRUD、层次(derive/refine)、查询；不处理跨域关系
+
+extend type Query {
+    # 查询单个需求
+    requirement(id: ID!): RequirementDefinition
+    
+    # 分页查询需求列表
+    requirements(page: Int = 0, size: Int = 20): RequirementsPage!
+    
+    # 查询需求层次树
+    requirementTree(rootId: ID!): RequirementDefinition
+}
+
+extend type Mutation {
+    # 创建需求
+    createRequirement(input: CreateRequirementInput!): CreateRequirementPayload!
+    
+    # 更新需求
+    updateRequirement(id: ID!, input: UpdateRequirementInput!): UpdateRequirementPayload!
+    
+    # 删除需求
+    deleteRequirement(id: ID!): DeleteRequirementPayload!
+    
+    # 建立derive关系
+    deriveRequirement(sourceId: ID!, targetId: ID!): DeriveRequirementPayload!
+    
+    # 建立refine关系  
+    refineRequirement(sourceId: ID!, targetId: ID!): RefineRequirementPayload!
+}
+
+# 需求定义
+type RequirementDefinition {
+    id: ID!
+    reqId: String!  # 需求唯一标识符
+    name: String!
+    text: String
+    kind: RequirementKind!
+    priority: RequirementPriority
+    status: RequirementStatus
+    
+    # 层次关系
+    derivedFrom: [RequirementDefinition!]
+    derives: [RequirementDefinition!]
+    refinedFrom: [RequirementDefinition!]
+    refines: [RequirementDefinition!]
+    
+    # 审计字段
+    createdAt: String!
+    createdBy: String!
+    updatedAt: String
+    updatedBy: String
+}
+
+# 需求类型
+enum RequirementKind {
+    FUNCTIONAL
+    PERFORMANCE  
+    INTERFACE
+    DESIGN
+    PHYSICAL
+}
+
+# 需求优先级
+enum RequirementPriority {
+    HIGH
+    MEDIUM
+    LOW
+}
+
+# 需求状态
+enum RequirementStatus {
+    DRAFT
+    PROPOSED
+    APPROVED
+    DEPRECATED
+}
+
+# 创建需求输入
+input CreateRequirementInput {
+    reqId: String!
+    name: String!
+    text: String
+    kind: RequirementKind!
+    priority: RequirementPriority
+}
+
+# 更新需求输入
+input UpdateRequirementInput {
+    name: String
+    text: String
+    priority: RequirementPriority
+    status: RequirementStatus
+}
+
+# 分页结果
+type RequirementsPage {
+    content: [RequirementDefinition!]!
+    totalElements: Int!
+    totalPages: Int!
+    pageNumber: Int!
+    pageSize: Int!
+}
+
+# Mutation返回类型（统一Payload模式）
+type CreateRequirementPayload {
+    ok: Boolean!
+    error: Error
+    requirement: RequirementDefinition
+}
+
+type UpdateRequirementPayload {
+    ok: Boolean!
+    error: Error
+    requirement: RequirementDefinition
+}
+
+type DeleteRequirementPayload {
+    ok: Boolean!
+    error: Error
+}
+
+type DeriveRequirementPayload {
+    ok: Boolean!
+    error: Error
+    source: RequirementDefinition
+    target: RequirementDefinition
+}
+
+type RefineRequirementPayload {
+    ok: Boolean!
+    error: Error
+    source: RequirementDefinition
+    target: RequirementDefinition
+}
+
+# 错误类型
+type Error {
+    code: String!
+    messageKey: String!
+    path: [String!]!
+}

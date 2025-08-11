@@ -15,10 +15,15 @@ logs/
 node_modules/
 .yarn/
 yarn.lock
+sirius-web/node_modules/
 
 # Gradle
 .gradle/
 build/
+gradle-*/
+
+# Archives
+*.zip
 
 # Maven
 .target/

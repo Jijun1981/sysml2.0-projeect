@@ -35,3 +35,11 @@ performance:
     timeout: 3000
   mutation:
     timeout: 5000
+
+# 生产环境鉴权配置
+auth:
+  enabled: true
+  oidc:
+    issuer: ${OIDC_ISSUER}
+    client-id: ${OIDC_CLIENT_ID}
+    client-secret: ${OIDC_CLIENT_SECRET}

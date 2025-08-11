@@ -28,14 +28,31 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     
+    // Metrics
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    
+    // Jackson (for JSON serialization)
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    
     // GraphQL
     implementation 'com.graphql-java:graphql-java-extended-scalars:21.0'
     
-    // EMF & CDO
+    // EMF 
     implementation 'org.eclipse.emf:org.eclipse.emf.ecore:2.35.0'
     implementation 'org.eclipse.emf:org.eclipse.emf.common:2.29.0'
-    implementation 'org.eclipse.emf.cdo:org.eclipse.emf.cdo.server:4.23.0'
-    implementation 'org.eclipse.emf.cdo:org.eclipse.emf.cdo.server.db:4.7.0'
+    implementation 'org.eclipse.emf:org.eclipse.emf.ecore.xmi:2.18.0'
+    implementation 'org.eclipse.emf:org.eclipse.emf.edit:2.19.0'
+    
+    // CDO (Model Repository) - 暂时注释，需要配置Eclipse P2仓库
+    // implementation 'org.eclipse.emf.cdo:org.eclipse.emf.cdo:4.23.0'
+    // implementation 'org.eclipse.emf.cdo:org.eclipse.emf.cdo.common:4.23.0'
+    // implementation 'org.eclipse.emf.cdo:org.eclipse.emf.cdo.net4j:4.23.0'
+    
+    // Sirius Web - 使用本地项目
+    // 暂时使用文件依赖或创建轻量级集成
+    // implementation files('/mnt/f/sysml2/sirius-web/packages/sirius-components/sirius-components-core/target/*.jar')
+    
+    // SysML v2 - 不依赖JAR，直接读取.ecore文件
     
     // Database
     runtimeOnly 'com.h2database:h2'
@@ -49,6 +66,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.graphql:spring-graphql-test'
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.2.0'
+    testImplementation 'ch.qos.logback:logback-classic'
 }
 
 tasks.named('test') {

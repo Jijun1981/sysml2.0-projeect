@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SysML v2 Platform - GraphQL Explorer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin: 0;
+            color: #333;
+        }
+        .status {
+            color: #10b981;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #4c51bf;
+        }
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+        }
+        button {
+            background: #4c51bf;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        #result {
+            background: #f7fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            padding: 10px;
+            min-height: 300px;
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+        }
+        .examples {
+            margin-top: 20px;
+        }
+        .example {
+            background: #f7fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        .example:hover {
+            background: #edf2f7;
+        }
+        .example-title {
+            font-weight: bold;
+            color: #4c51bf;
+            margin-bottom: 5px;
+        }
+        .example-code {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 SysML v2 Platform</h1>
+            <div class="status">✅ GraphQL API 运行中</div>
+        </header>
+        
+        <div class="main-content">
+            <div class="panel">
+                <h2>GraphQL 查询编辑器</h2>
+                <textarea id="query" placeholder="输入您的GraphQL查询...">
+# 健康检查
+{
+  ok
+  health(component: "cdo") {
+    status
+  }
+}</textarea>
+                <button onclick="executeQuery()">执行查询</button>
+                
+                <div class="examples">
+                    <h3>示例查询</h3>
+                    
+                    <div class="example" onclick="loadExample('health')">
+                        <div class="example-title">健康检查</div>
+                        <div class="example-code">查询系统健康状态</div>
+                    </div>
+                    
+                    <div class="example" onclick="loadExample('create')">
+                        <div class="example-title">创建需求</div>
+                        <div class="example-code">创建新的SysML需求</div>
+                    </div>
+                    
+                    <div class="example" onclick="loadExample('list')">
+                        <div class="example-title">查询需求列表</div>
+                        <div class="example-code">获取所有需求的分页列表</div>
+                    </div>
+                    
+                    <div class="example" onclick="loadExample('derive')">
+                        <div class="example-title">建立派生关系</div>
+                        <div class="example-code">在需求间建立derive关系</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2>查询结果</h2>
+                <div id="result">结果将在这里显示...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const examples = {
+            health: `# 健康检查
+{
+  ok
+  health(component: "cdo") {
+    status
+    version
+  }
+}`,
+            create: `# 创建需求
+mutation {
+  createRequirement(input: {
+    reqId: "REQ-NEW-001"
+    name: "新需求名称"
+    text: "需求详细描述"
+    kind: FUNCTIONAL
+    priority: HIGH
+  }) {
+    ok
+    requirement {
+      id
+      reqId
+      name
+      text
+      kind
+      priority
+      status
+      createdAt
+      createdBy
+    }
+    error {
+      code
+      messageKey
+    }
+  }
+}`,
+            list: `# 查询需求列表
+{
+  requirements(page: 0, size: 10) {
+    content {
+      reqId
+      name
+      text
+      kind
+      priority
+      status
+    }
+    totalElements
+    totalPages
+    pageNumber
+    pageSize
+  }
+}`,
+            derive: `# 建立派生关系
+mutation {
+  deriveRequirement(
+    sourceId: "子需求ID"
+    targetId: "父需求ID"
+  ) {
+    ok
+    source {
+      reqId
+      name
+    }
+    target {
+      reqId
+      name
+    }
+    error {
+      code
+      messageKey
+    }
+  }
+}`
+        };
+        
+        function loadExample(type) {
+            document.getElementById('query').value = examples[type];
+        }
+        
+        async function executeQuery() {
+            const query = document.getElementById('query').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.textContent = '执行中...';
+            
+            try {
+                const response = await fetch('/graphql', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                });
+                
+                const data = await response.json();
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultDiv.textContent = '错误: ' + error.message;
+            }
+        }
+        
+        // 页面加载时执行健康检查
+        window.onload = () => {
+            executeQuery();
+        };
+    </script>
+</body>
+</html>

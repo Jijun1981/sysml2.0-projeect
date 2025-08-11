@@ -1,0 +1,15 @@
+type Query {
+    ok: Boolean!
+    health(component: String): Health!
+}
+
+type Mutation {
+    # Placeholder - will be extended by domain modules
+    _empty: String
+}
+
+type Health {
+    status: String!
+    version: String!
+    component: String
+}
