@@ -1,0 +1,29 @@
+# 测试配置 - 使用Testcontainers
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # 测试时重建表
+    show-sql: false
+    
+# CDO配置
+cdo:
+  enabled: true
+  repository:
+    name: sysml-test
+  server:
+    port: 2037  # 使用不同端口避免冲突
+  store:
+    schema-name: sysml_cdo_test
+    drop-on-activate: false
+    
+# 功能开关
+features:
+  requirements: true
+  graphql:
+    schemaSnapshot: false
+  
+# 测试环境日志
+logging:
+  level:
+    com.sysml: INFO
+    org.eclipse.emf.cdo: WARN

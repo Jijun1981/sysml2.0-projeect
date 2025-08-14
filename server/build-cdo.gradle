@@ -1,0 +1,57 @@
+// 构建本地CDO JAR
+apply plugin: 'java'
+
+def cdoSourceDir = file('../../opensource/cdo')
+def outputDir = file('libs/cdo')
+
+task compileCDO {
+    description = 'Compile CDO from local source'
+    
+    doLast {
+        outputDir.mkdirs()
+        
+        // CDO核心模块列表
+        def modules = [
+            'org.eclipse.emf.cdo',
+            'org.eclipse.emf.cdo.common', 
+            'org.eclipse.emf.cdo.server',
+            'org.eclipse.net4j',
+            'org.eclipse.net4j.util'
+        ]
+        
+        modules.each { module ->
+            def moduleDir = file("${cdoSourceDir}/plugins/${module}")
+            if (moduleDir.exists()) {
+                println "Compiling ${module}..."
+                
+                // 创建输出目录
+                def classesDir = file("${outputDir}/${module}/classes")
+                classesDir.mkdirs()
+                
+                // 编译Java源代码
+                ant.javac(
+                    srcdir: "${moduleDir}/src",
+                    destdir: classesDir,
+                    includeantruntime: false,
+                    classpath: configurations.compileClasspath.asPath,
+                    debug: true
+                )
+                
+                // 打包成JAR
+                ant.jar(
+                    destfile: "${outputDir}/${module}.jar",
+                    basedir: classesDir
+                )
+                
+                println "Created ${module}.jar"
+            }
+        }
+    }
+}
+
+// 配置依赖
+dependencies {
+    // EMF依赖（CDO需要）
+    implementation 'org.eclipse.emf:org.eclipse.emf.ecore:2.35.0'
+    implementation 'org.eclipse.emf:org.eclipse.emf.common:2.29.0'
+}

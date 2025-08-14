@@ -1,0 +1,341 @@
+# Traceability Domain - Complete GraphQL Schema
+# 展示Element union定义和Evidence类型
+
+# ========== Element联合类型 ==========
+union Element = 
+  | RequirementDefinition 
+  | RequirementUsage
+  | PartDefinition
+  | PartUsage
+  | PortDefinition
+  | PortUsage
+  | ConnectionUsage
+  | ConstraintUsage
+  | TestCase
+  | AnalysisCase
+
+# ========== Evidence类型体系 ==========
+type Evidence {
+  id: ID!
+  type: EvidenceType!
+  sourceId: ID!           # 约束结果ID、测试执行ID等
+  sourceType: String!     # 源类型标识
+  status: EvidenceStatus!
+  
+  # 证据详情
+  summary: String!
+  details: JSON          # 具体证据内容
+  
+  # 可信度和来源
+  confidence: Float      # 0.0-1.0
+  provenance: Provenance
+  
+  # 时间信息
+  collectedAt: DateTime!
+  validUntil: DateTime
+  
+  # 关联
+  attachments: [Attachment!]!
+}
+
+type Provenance {
+  method: String!        # CALCULATION | TEST | SIMULATION | REVIEW
+  tool: String          # 工具名称
+  version: String       # 工具版本
+  parameters: JSON      # 执行参数
+  executor: String      # 执行者
+}
+
+type Attachment {
+  id: ID!
+  name: String!
+  mimeType: String!
+  size: Int!
+  url: String!
+  uploadedAt: DateTime!
+}
+
+enum EvidenceType {
+  CALCULATION      # 来自约束计算
+  TEST_EXECUTION   # 来自测试执行
+  SIMULATION       # 来自仿真结果
+  ANALYSIS         # 来自分析结果
+  REVIEW           # 来自人工评审
+  INSPECTION       # 来自检查
+  DEMONSTRATION    # 来自演示
+}
+
+enum EvidenceStatus {
+  PASS
+  FAIL
+  PENDING
+  INCOMPLETE
+  NOT_APPLICABLE
+}
+
+# ========== 追溯关系类型 ==========
+type TraceRelation {
+  id: ID!
+  type: TraceType!
+  
+  # 关系端点（只读引用）
+  source: Element!
+  target: Element!
+  
+  # 关系属性
+  rationale: String
+  confidence: Float       # 关系可信度
+  
+  # 证据链（只读消费）
+  evidence: [Evidence!]!
+  evidenceSummary: EvidenceSummary
+  
+  # 审计
+  createdAt: DateTime!
+  createdBy: String
+  updatedAt: DateTime!
+  updatedBy: String
+  version: Int!
+}
+
+type EvidenceSummary {
+  totalCount: Int!
+  passCount: Int!
+  failCount: Int!
+  pendingCount: Int!
+  overallStatus: EvidenceStatus!
+  lastUpdated: DateTime!
+}
+
+enum TraceType {
+  # 需求关系（跨域）
+  SATISFIES       # Element满足Requirement
+  VERIFIES        # TestCase验证Requirement
+  
+  # 分配关系
+  ALLOCATES       # Function分配到Structure
+  IMPLEMENTS      # Structure实现Function
+  
+  # 其他关系
+  TRACES_TO       # 通用追溯
+  CONFLICTS_WITH  # 冲突关系
+  DEPENDS_ON      # 依赖关系
+}
+
+# ========== 覆盖率分析 ==========
+type CoverageMatrix {
+  requirements: [RequirementCoverage!]!
+  summary: CoverageSummary!
+  generatedAt: DateTime!
+}
+
+type RequirementCoverage {
+  requirement: RequirementDefinition!
+  
+  # 覆盖情况（只读计算，不回写）
+  satisfiedBy: [Element!]!
+  verifiedBy: [TestCase!]!
+  allocatedTo: [Element!]!
+  
+  # 覆盖状态
+  satisfactionStatus: CoverageStatus!
+  verificationStatus: CoverageStatus!
+  allocationStatus: CoverageStatus!
+  
+  # 证据汇总
+  evidenceSummary: EvidenceSummary
+  
+  # 风险评估
+  riskLevel: RiskLevel
+  gaps: [String!]!
+}
+
+type CoverageSummary {
+  totalRequirements: Int!
+  fullyCovered: Int!
+  partiallyCovered: Int!
+  notCovered: Int!
+  
+  satisfactionRate: Float!
+  verificationRate: Float!
+  allocationRate: Float!
+  
+  overallCoverage: Float!
+}
+
+enum CoverageStatus {
+  FULLY_COVERED
+  PARTIALLY_COVERED
+  NOT_COVERED
+  NOT_APPLICABLE
+}
+
+enum RiskLevel {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  NONE
+}
+
+# ========== 输入类型 ==========
+input CreateTraceRelationInput {
+  type: TraceType!
+  sourceId: ID!
+  targetId: ID!
+  rationale: String
+  confidence: Float
+  evidenceIds: [ID!]    # 只引用已存在的证据
+}
+
+input UpdateTraceRelationInput {
+  rationale: String
+  confidence: Float
+  addEvidenceIds: [ID!]
+  removeEvidenceIds: [ID!]
+}
+
+input TraceQueryFilter {
+  types: [TraceType!]
+  sourceIds: [ID!]
+  targetIds: [ID!]
+  hasEvidence: Boolean
+  minConfidence: Float
+}
+
+input CoverageQueryOptions {
+  includeIndirect: Boolean
+  includePartial: Boolean
+  requireEvidence: Boolean
+}
+
+# ========== Payload类型 ==========
+type CreateTraceRelationPayload {
+  ok: Boolean!
+  error: Error
+  relation: TraceRelation
+}
+
+type UpdateTraceRelationPayload {
+  ok: Boolean!
+  error: Error
+  relation: TraceRelation
+}
+
+type DeleteTraceRelationPayload {
+  ok: Boolean!
+  error: Error
+  deletedId: ID
+  affectedRelations: [ID!]!
+}
+
+type CoverageAnalysisPayload {
+  ok: Boolean!
+  error: Error
+  matrix: CoverageMatrix
+  exportUrl: String
+}
+
+# ========== Mutations ==========
+extend type Mutation {
+  # 关系管理（创建跨域关系）
+  createTraceRelation(input: CreateTraceRelationInput!): CreateTraceRelationPayload!
+  updateTraceRelation(id: ID!, input: UpdateTraceRelationInput!): UpdateTraceRelationPayload!
+  deleteTraceRelation(id: ID!): DeleteTraceRelationPayload!
+  
+  # 批量关系操作
+  bulkCreateTraceRelations(inputs: [CreateTraceRelationInput!]!): BulkOperationPayload!
+  
+  # 覆盖率分析触发（只读生成）
+  generateCoverageMatrix(
+    requirementIds: [ID!]!
+    options: CoverageQueryOptions
+  ): CoverageAnalysisPayload!
+  
+  # 证据关联（只引用，不创建）
+  attachEvidence(relationId: ID!, evidenceIds: [ID!]!): UpdateTraceRelationPayload!
+  detachEvidence(relationId: ID!, evidenceIds: [ID!]!): UpdateTraceRelationPayload!
+}
+
+# ========== Queries ==========
+extend type Query {
+  # 关系查询
+  traceRelation(id: ID!): TraceRelation
+  traceRelations(filter: TraceQueryFilter, page: Int = 1, size: Int = 20): [TraceRelation!]!
+  
+  # 正向追溯
+  tracesFrom(elementId: ID!, types: [TraceType!]): [TraceRelation!]!
+  
+  # 反向追溯
+  tracesTo(elementId: ID!, types: [TraceType!]): [TraceRelation!]!
+  
+  # 传递追溯
+  transitiveTraces(
+    elementId: ID!
+    direction: TraceDirection!
+    maxDepth: Int = 3
+  ): [TracePath!]!
+  
+  # 覆盖率查询（实时计算，不存储）
+  requirementCoverage(requirementId: ID!): RequirementCoverage!
+  coverageMatrix(
+    requirementIds: [ID!]
+    options: CoverageQueryOptions
+  ): CoverageMatrix!
+  
+  # 证据查询（只读）
+  evidence(id: ID!): Evidence
+  evidenceBySource(sourceId: ID!, sourceType: String): [Evidence!]!
+  
+  # 影响分析
+  impactAnalysis(elementId: ID!, changeType: String): ImpactAnalysisResult!
+}
+
+enum TraceDirection {
+  FORWARD
+  BACKWARD
+  BOTH
+}
+
+type TracePath {
+  path: [Element!]!
+  relations: [TraceRelation!]!
+  depth: Int!
+}
+
+type ImpactAnalysisResult {
+  directImpacts: [Element!]!
+  indirectImpacts: [Element!]!
+  affectedRequirements: [RequirementDefinition!]!
+  riskAssessment: RiskLevel!
+}
+
+# ========== Subscriptions ==========
+extend type Subscription {
+  # 追溯关系变更（只读推送）
+  traceRelationChanged(filter: TraceSubscriptionFilter): TraceChangeEvent!
+  
+  # 覆盖率变化通知
+  coverageChanged(requirementIds: [ID!]): CoverageChangeEvent!
+}
+
+input TraceSubscriptionFilter {
+  elementIds: [ID!]
+  types: [TraceType!]
+  includeTransitive: Boolean
+}
+
+type TraceChangeEvent {
+  type: ChangeType!
+  relation: TraceRelation!
+  affectedElements: [Element!]!
+  timestamp: DateTime!
+}
+
+type CoverageChangeEvent {
+  requirementId: ID!
+  previousCoverage: CoverageStatus!
+  currentCoverage: CoverageStatus!
+  changedBy: String!
+  timestamp: DateTime!
+}

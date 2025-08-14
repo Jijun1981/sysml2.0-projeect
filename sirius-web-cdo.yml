@@ -1,0 +1,21 @@
+version: "3.8"
+services:
+  sirius-web:
+    image: eclipsesirius/sirius-web:latest
+    ports:
+      - "3000:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      # 连接我们的PostgreSQL数据库
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/sysml_dev_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 123456
+      SIRIUS_COMPONENTS_CORS_ALLOWEDORIGINPATTERNS: "*"
+      # CDO配置
+      SIRIUS_CDO_ENABLED: "true"
+      SIRIUS_CDO_SERVER_HOST: host.docker.internal
+      SIRIUS_CDO_SERVER_PORT: 2036
+      SIRIUS_CDO_REPOSITORY_NAME: sysml
+      SERVER_PORT: 8080
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

@@ -1,0 +1,33 @@
+package com.sysml.platform.nfr;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.sysml.platform.testsupport.AbstractPostgresIT;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.ResponseEntity;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@org.springframework.test.context.ActiveProfiles("test-nodb")
+@org.springframework.test.context.TestPropertySource(properties = {
+  "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration",
+  "CDO_ENABLED=false",
+  "features.requirements=false"
+})
+class ActuatorHealthIT {
+
+  @LocalServerPort int port;
+
+  TestRestTemplate rest = new TestRestTemplate();
+
+  @Test
+  void actuatorHealthShouldBeUpAndExposeCdo() {
+    ResponseEntity<String> resp =
+        rest.getForEntity("http://localhost:" + port + "/actuator/health", String.class);
+    assertThat(resp.getStatusCode().is2xxSuccessful()).isTrue();
+    assertThat(resp.getBody()).contains("\"status\":\"UP\"");
+    assertThat(resp.getBody()).contains("cdo");
+  }
+}

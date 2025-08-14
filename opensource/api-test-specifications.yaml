@@ -1,0 +1,413 @@
+# SysML v2 API Services 测试用例详细规范
+# 汽车制动系统建模验证的完整测试套件
+
+test_framework:
+  name: "SysML v2 API 集成测试框架"
+  technology:
+    testing_framework: "pytest"
+    http_client: "requests"
+    validation: "jsonschema"
+    reporting: "pytest-html"
+  
+# API端点测试规范
+api_endpoints_testing:
+  base_url: "http://localhost:9000"
+  authentication:
+    type: "Bearer Token"
+    header: "Authorization"
+  
+  # 基础API测试
+  health_check:
+    endpoint: "/health"
+    method: "GET"
+    description: "验证API服务健康状态"
+    test_cases:
+      - name: "服务健康检查"
+        expected_status: 200
+        expected_response_schema:
+          type: "object"
+          properties:
+            status: {"type": "string", "enum": ["UP"]}
+            timestamp: {"type": "string"}
+
+  # 项目管理API测试  
+  project_management:
+    create_project:
+      endpoint: "/projects"
+      method: "POST"
+      description: "创建新的SysML项目"
+      test_cases:
+        - name: "创建制动系统项目"
+          request_payload:
+            name: "BrakingSystemValidation"
+            description: "汽车制动系统SysML验证项目"
+          expected_status: 201
+          expected_response_schema:
+            type: "object"
+            properties:
+              "@type": {"type": "string", "const": "Project"}
+              "@id": {"type": "string"}
+              "name": {"type": "string"}
+
+    get_project:
+      endpoint: "/projects/{projectId}"
+      method: "GET" 
+      description: "获取项目信息"
+      test_cases:
+        - name: "获取项目详情"
+          expected_status: 200
+
+  # Commit管理API测试
+  commit_management:
+    create_commit:
+      endpoint: "/projects/{projectId}/commits"
+      method: "POST"
+      description: "创建新的提交"
+      test_cases:
+        - name: "创建初始提交"
+          request_payload:
+            comment: "初始化制动系统模型"
+          expected_status: 201
+
+# SysML元素建模测试用例
+sysml_elements_testing:
+  
+  # 需求建模测试
+  requirement_modeling:
+    create_requirement_definition:
+      endpoint: "/projects/{projectId}/commits/{commitId}/elements"
+      method: "POST"
+      description: "创建需求定义"
+      test_cases:
+        - name: "创建制动距离需求"
+          test_id: "TC-REQ-001"
+          request_payload:
+            "@type": "RequirementDefinition"
+            "declaredName": "BrakingDistanceRequirement"
+            "text": "车辆必须在100km/h速度下40米内完全停止"
+            "reqId": "REQ-FUNC-001"
+          expected_status: 201
+          validation_steps:
+            - "验证返回的元素ID非空"
+            - "验证需求文本正确保存"
+            - "验证元素类型为RequirementDefinition"
+            
+        - name: "创建响应时间需求"
+          test_id: "TC-REQ-002"
+          request_payload:
+            "@type": "RequirementDefinition"
+            "declaredName": "ResponseTimeRequirement" 
+            "text": "制动系统响应时间不得超过150毫秒"
+            "reqId": "REQ-FUNC-002"
+          expected_status: 201
+          
+        - name: "创建制动力需求"
+          test_id: "TC-REQ-003"
+          request_payload:
+            "@type": "RequirementDefinition"
+            "declaredName": "BrakingForceRequirement"
+            "text": "制动力必须达到车重的0.8倍以上"
+            "reqId": "REQ-PERF-001"
+          expected_status: 201
+
+  # 部件建模测试
+  part_modeling:
+    create_part_definition:
+      endpoint: "/projects/{projectId}/commits/{commitId}/elements"
+      method: "POST"
+      description: "创建部件定义"
+      test_cases:
+        - name: "创建制动系统总成"
+          test_id: "TC-PART-001"
+          request_payload:
+            "@type": "PartDefinition"
+            "declaredName": "BrakingSystem"
+            "documentation": "汽车制动系统总成，包含所有制动相关组件"
+          expected_status: 201
+          validation_steps:
+            - "验证PartDefinition类型正确"
+            - "验证名称和文档描述保存"
+            - "验证元素可以被查询"
+            
+        - name: "创建制动踏板"
+          test_id: "TC-PART-002"
+          request_payload:
+            "@type": "PartDefinition"
+            "declaredName": "BrakePedal"
+            "documentation": "制动踏板组件，接收驾驶员制动指令"
+          expected_status: 201
+          
+        - name: "创建制动主缸"
+          test_id: "TC-PART-003"
+          request_payload:
+            "@type": "PartDefinition"
+            "declaredName": "MasterCylinder"
+            "documentation": "制动主缸，将踏板力转换为液压力"
+          expected_status: 201
+          
+        - name: "创建制动盘"
+          test_id: "TC-PART-004"
+          request_payload:
+            "@type": "PartDefinition"
+            "declaredName": "BrakeDisc"
+            "documentation": "制动盘，与制动片摩擦产生制动力"
+          expected_status: 201
+          
+        - name: "创建制动卡钳"
+          test_id: "TC-PART-005"
+          request_payload:
+            "@type": "PartDefinition"
+            "declaredName": "BrakeCaliper" 
+            "documentation": "制动卡钳，夹紧制动片"
+          expected_status: 201
+          
+        - name: "创建ABS控制器"
+          test_id: "TC-PART-006"
+          request_payload:
+            "@type": "PartDefinition"
+            "declaredName": "ABSController"
+            "documentation": "ABS控制单元，防止车轮抱死"
+          expected_status: 201
+
+  # 部件使用和组装关系测试
+  part_usage_modeling:
+    create_part_usage:
+      endpoint: "/projects/{projectId}/commits/{commitId}/elements"
+      method: "POST" 
+      description: "创建部件使用关系"
+      test_cases:
+        - name: "制动系统包含制动踏板"
+          test_id: "TC-USAGE-001"
+          request_payload:
+            "@type": "PartUsage"
+            "declaredName": "brakePedalUsage"
+            # 需要引用已创建的PartDefinition
+          expected_status: 201
+
+  # 需求满足关系测试
+  requirement_satisfaction:
+    create_satisfy_relationship:
+      endpoint: "/projects/{projectId}/commits/{commitId}/elements"
+      method: "POST"
+      description: "创建需求满足关系"
+      test_cases:
+        - name: "制动系统满足制动距离需求"
+          test_id: "TC-SAT-001"
+          request_payload:
+            "@type": "SatisfyRequirementUsage"
+            "declaredName": "brakingSystemSatisfiesBrakingDistance"
+            # 需要引用需求和满足需求的部件
+          expected_status: 201
+
+# 查询和验证测试
+query_validation_testing:
+  
+  # 元素查询测试
+  element_queries:
+    get_all_elements:
+      endpoint: "/projects/{projectId}/commits/{commitId}/elements"
+      method: "GET"
+      description: "获取所有元素"
+      test_cases:
+        - name: "查询所有建模元素"
+          test_id: "TC-QUERY-001"
+          expected_status: 200
+          validation_steps:
+            - "验证返回的元素数量正确"
+            - "验证每个元素都有正确的@type"
+            - "验证元素ID唯一性"
+            
+    get_elements_by_type:
+      endpoint: "/projects/{projectId}/commits/{commitId}/elements"
+      method: "GET"
+      query_parameters:
+        "@type": "RequirementDefinition"
+      description: "按类型查询元素"
+      test_cases:
+        - name: "查询所有需求定义"
+          test_id: "TC-QUERY-002"
+          expected_status: 200
+          validation_steps:
+            - "验证只返回RequirementDefinition类型"
+            - "验证需求文本内容完整"
+
+# 数据一致性测试
+data_consistency_testing:
+  referential_integrity:
+    test_cases:
+      - name: "需求满足关系引用完整性"
+        test_id: "TC-CONSISTENCY-001"
+        description: "验证satisfy关系中的需求和部件引用有效"
+        validation_steps:
+          - "创建需求定义"
+          - "创建部件定义"
+          - "创建满足关系"
+          - "验证引用的需求和部件存在"
+          - "验证关系可以被正确查询"
+
+# 性能测试
+performance_testing:
+  load_tests:
+    - name: "大量元素创建性能"
+      test_id: "TC-PERF-001"
+      description: "测试创建大量SysML元素的性能"
+      test_scenario:
+        - "连续创建100个需求定义"
+        - "连续创建50个部件定义"
+        - "创建所有满足关系"
+      performance_criteria:
+        - "平均响应时间 < 500ms"
+        - "成功率 > 99%"
+        - "内存使用增长 < 10MB"
+
+# 错误处理测试
+error_handling_testing:
+  invalid_requests:
+    test_cases:
+      - name: "无效JSON格式"
+        test_id: "TC-ERROR-001"
+        request_payload: "invalid json"
+        expected_status: 400
+        expected_error_message: "Invalid JSON format"
+        
+      - name: "缺少必需字段"
+        test_id: "TC-ERROR-002"
+        request_payload:
+          "@type": "RequirementDefinition"
+          # 缺少declaredName
+        expected_status: 400
+        
+      - name: "无效元素类型"
+        test_id: "TC-ERROR-003"
+        request_payload:
+          "@type": "InvalidType"
+          "declaredName": "test"
+        expected_status: 400
+
+# 集成测试工作流
+integration_workflows:
+  complete_modeling_workflow:
+    name: "完整建模工作流测试"
+    test_id: "TC-WORKFLOW-001"
+    description: "端到端测试完整的制动系统建模过程"
+    steps:
+      1:
+        action: "创建项目"
+        api_call: "POST /projects"
+        validation: "项目创建成功"
+      2:
+        action: "创建初始提交"
+        api_call: "POST /projects/{id}/commits"
+        validation: "提交创建成功"
+      3:
+        action: "创建功能需求"
+        api_call: "POST /projects/{id}/commits/{id}/elements"
+        validation: "需求元素创建成功"
+      4:
+        action: "创建性能需求"
+        api_call: "POST /projects/{id}/commits/{id}/elements"
+        validation: "需求元素创建成功"
+      5:
+        action: "创建部件定义"
+        api_call: "POST /projects/{id}/commits/{id}/elements"
+        validation: "所有部件创建成功"
+      6:
+        action: "创建部件使用关系"
+        api_call: "POST /projects/{id}/commits/{id}/elements"
+        validation: "组装关系建立成功"
+      7:
+        action: "创建需求满足关系"
+        api_call: "POST /projects/{id}/commits/{id}/elements"
+        validation: "追踪关系建立成功"
+      8:
+        action: "验证完整模型"
+        api_call: "GET /projects/{id}/commits/{id}/elements"
+        validation: "模型结构完整，关系正确"
+
+# 测试数据模板
+test_data_templates:
+  brake_system_requirements:
+    functional_requirements:
+      - id: "REQ-FUNC-001"
+        name: "BrakingDistanceRequirement"
+        text: "车辆必须在100km/h速度下40米内完全停止"
+      - id: "REQ-FUNC-002"
+        name: "ResponseTimeRequirement"
+        text: "制动系统响应时间不得超过150毫秒"
+      - id: "REQ-FUNC-003"
+        name: "SafetyRequirement"
+        text: "制动系统必须具备双重安全保护机制"
+        
+    performance_requirements:
+      - id: "REQ-PERF-001"
+        name: "BrakingForceRequirement"
+        text: "制动力必须达到车重的0.8倍以上"
+      - id: "REQ-PERF-002"
+        name: "DurabilityRequirement"
+        text: "制动系统必须满足20万公里使用寿命"
+        
+  brake_system_parts:
+    main_system:
+      - id: "PART-SYS-001"
+        name: "BrakingSystem"
+        description: "汽车制动系统总成"
+        
+    components:
+      - id: "PART-COMP-001"
+        name: "BrakePedal"
+        description: "制动踏板组件"
+      - id: "PART-COMP-002"
+        name: "MasterCylinder"
+        description: "制动主缸"
+      - id: "PART-COMP-003"
+        name: "BrakeDisc"
+        description: "制动盘"
+      - id: "PART-COMP-004"
+        name: "BrakeCaliper"
+        description: "制动卡钳"
+      - id: "PART-COMP-005"
+        name: "ABSController"
+        description: "ABS控制单元"
+
+# 测试执行配置
+test_execution:
+  environment:
+    base_url: "http://localhost:9000"
+    timeout: 30
+    retry_count: 3
+    
+  test_sequence:
+    setup:
+      - "启动SysML API服务"
+      - "验证数据库连接"
+      - "清理测试数据"
+      
+    execution:
+      - "执行基础API测试"
+      - "执行需求建模测试"
+      - "执行部件建模测试"
+      - "执行关系建模测试"
+      - "执行查询验证测试"
+      - "执行集成工作流测试"
+      
+    cleanup:
+      - "清理测试项目"
+      - "清理测试数据"
+      - "生成测试报告"
+
+# 验收标准
+acceptance_criteria:
+  test_coverage:
+    api_endpoints: "> 90%"
+    sysml_elements: "100% (主要元素类型)"
+    error_scenarios: "> 80%"
+    
+  performance_requirements:
+    response_time: "< 500ms (95%ile)"
+    throughput: "> 100 requests/minute"
+    success_rate: "> 99%"
+    
+  functional_requirements:
+    model_completeness: "包含需求、部件、关系三层模型"
+    data_integrity: "所有引用关系有效"
+    query_accuracy: "查询结果100%准确"

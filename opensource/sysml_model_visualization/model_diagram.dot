@@ -1,0 +1,74 @@
+digraph SysMLModel {
+    rankdir=TB;
+    compound=true;
+    
+    // 样式定义
+    node [shape=box, style="rounded,filled"];
+    
+    // 需求子图
+    subgraph cluster_requirements {
+        label="需求定义 (Requirements)";
+        style=filled;
+        color=lightblue;
+        
+        req_0 [label="BrakingDistanceRequirement\nREQ-FUNC-001", fillcolor=lightblue];
+        req_1 [label="ResponseTimeRequirement\nREQ-FUNC-002", fillcolor=lightblue];
+        req_2 [label="SafetyRequirement\nREQ-FUNC-003", fillcolor=lightblue];
+        req_3 [label="EnvironmentalRequirement\nREQ-FUNC-004", fillcolor=lightblue];
+        req_4 [label="BrakingForceRequirement\nREQ-PERF-001", fillcolor=lightblue];
+        req_5 [label="DurabilityRequirement\nREQ-PERF-002", fillcolor=lightblue];
+        req_6 [label="TemperatureToleranceRequirement\nREQ-PERF-003", fillcolor=lightblue];
+        req_7 [label="WeightRequirement\nREQ-PERF-004", fillcolor=lightblue];
+    }
+    
+    // 部件子图
+    subgraph cluster_parts {
+        label="部件定义 (Parts)";
+        style=filled;
+        color=orange;
+        
+        part_0 [label="BrakingSystem\nPART-SYS-001", fillcolor=orange];
+        part_1 [label="BrakePedal\nPART-COMP-001", fillcolor=orange];
+        part_2 [label="MasterCylinder\nPART-COMP-002", fillcolor=orange];
+        part_3 [label="BrakeDisc\nPART-COMP-003", fillcolor=orange];
+        part_4 [label="BrakeCaliper\nPART-COMP-004", fillcolor=orange];
+        part_5 [label="ABSController\nPART-COMP-005", fillcolor=orange];
+        part_6 [label="BrakeFluid\nPART-FLUID-001", fillcolor=orange];
+        part_7 [label="BrakePads\nPART-COMP-006", fillcolor=orange];
+        part_8 [label="BrakeRotor\nPART-COMP-007", fillcolor=orange];
+        part_9 [label="BrakePipe\nPART-PIPE-001", fillcolor=orange];
+        part_10 [label="VacuumBooster\nPART-COMP-008", fillcolor=orange];
+        part_11 [label="ElectronicStabilityControl\nPART-COMP-009", fillcolor=orange];
+    }
+    
+    // 实例子图
+    subgraph cluster_usages {
+        label="实例化 (Usages with Values)";
+        style=filled;
+        color=lightgreen;
+        
+        req_usage_0 [label="VehicleBrakingDistanceUsage\n40 meters", fillcolor=lightgreen];
+        req_usage_1 [label="BrakeResponseTimeUsage\n150 milliseconds", fillcolor=lightgreen];
+        req_usage_2 [label="BrakingForceUsage\n0.8 coefficient", fillcolor=lightgreen];
+        req_usage_3 [label="SystemWeightUsage\n45 kg", fillcolor=lightgreen];
+        part_usage_0 [label="FrontLeftBrakeDiscUsage\n@ Front Left Wheel", fillcolor=yellow];
+        part_usage_1 [label="FrontRightBrakeDiscUsage\n@ Front Right Wheel", fillcolor=yellow];
+        part_usage_2 [label="MainBrakeCylinderUsage\n@ Engine Bay", fillcolor=yellow];
+        part_usage_3 [label="BrakePedalAssemblyUsage\n@ Driver Compartment", fillcolor=yellow];
+        part_usage_4 [label="ABSControlModuleUsage\n@ Under Hood", fillcolor=yellow];
+        part_usage_5 [label="VacuumBoosterSystemUsage\n@ Firewall", fillcolor=yellow];
+    }
+    
+    // 关系连接
+    part_0 -> part_1;
+    part_0 -> part_2;
+    part_0 -> part_3;
+    part_0 -> part_4;
+    part_0 -> part_5;
+    
+    // Definition到Usage的关系
+    req_0 -> req_usage_0 [style=dashed, color=blue];
+    req_1 -> req_usage_1 [style=dashed, color=blue];
+    part_2 -> part_usage_0 [style=dashed, color=red];
+    part_2 -> part_usage_1 [style=dashed, color=red];
+}

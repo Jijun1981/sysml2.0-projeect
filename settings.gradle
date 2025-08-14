@@ -1,0 +1,8 @@
+rootProject.name = 'sysml2-platform'
+
+include 'server'
+
+// 未来可扩展的模块
+// include 'sirius-modeler'
+// include 'test-harness'
+// include 'performance-tests'

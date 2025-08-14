@@ -1,0 +1,66 @@
+package com.sysml.platform.infrastructure.cdo;
+
+import java.util.HashMap;
+import java.util.Map;
+import javax.sql.DataSource;
+import org.eclipse.emf.cdo.server.CDOServerUtil;
+import org.eclipse.emf.cdo.server.IRepository;
+import org.eclipse.emf.cdo.server.db.CDODBUtil;
+import org.eclipse.emf.cdo.server.db.IDBStore;
+import org.eclipse.emf.cdo.server.db.mapping.IMappingStrategy;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+
+/** Lean CDO配置（dev: H2, prod: PostgreSQL） */
+@Configuration
+public class CDOConfig {
+
+  // DataSource beans are defined in DataSourceConfig per profile
+
+  @Bean
+  @Profile("dev")
+  public IRepository cdoRepositoryDev(DataSource dataSource) {
+    Map<String, String> props = new HashMap<>();
+    props.put(IRepository.Props.OVERRIDE_UUID, "sysml-repo");
+    props.put(IRepository.Props.SUPPORTING_AUDITS, "false");
+    props.put(IRepository.Props.SUPPORTING_BRANCHES, "false");
+
+    IMappingStrategy mappingStrategy = CDODBUtil.createHorizontalMappingStrategy(false);
+    IDBStore store =
+        CDODBUtil.createStore(
+            mappingStrategy,
+            createDbAdapterReflective("org.eclipse.net4j.db.h2.H2Adapter", "h2"),
+            CDODBUtil.createConnectionProvider(dataSource));
+    return CDOServerUtil.createRepository("sysml", store, props);
+  }
+
+  @Bean
+  @Profile("prod")
+  public IRepository cdoRepositoryProd(DataSource dataSource) {
+    Map<String, String> props = new HashMap<>();
+    props.put(IRepository.Props.OVERRIDE_UUID, "sysml-repo");
+    props.put(IRepository.Props.SUPPORTING_AUDITS, "false");
+    props.put(IRepository.Props.SUPPORTING_BRANCHES, "false");
+
+    IMappingStrategy mappingStrategy = CDODBUtil.createHorizontalMappingStrategy(false);
+    IDBStore store =
+        CDODBUtil.createStore(
+            mappingStrategy,
+            createDbAdapterReflective(
+                "org.eclipse.net4j.db.postgresql.PostgreSQLAdapter", "postgresql"),
+            CDODBUtil.createConnectionProvider(dataSource));
+    return CDOServerUtil.createRepository("sysml", store, props);
+  }
+
+  private org.eclipse.net4j.db.IDBAdapter createDbAdapterReflective(
+      String fqcn, String fallbackByName) {
+    try {
+      Class<?> clazz = Class.forName(fqcn);
+      return (org.eclipse.net4j.db.IDBAdapter) clazz.getDeclaredConstructor().newInstance();
+    } catch (Throwable ignore) {
+      // fallback to name-based if available on classpath
+      return CDODBUtil.createDBAdapter(fallbackByName);
+    }
+  }
+}

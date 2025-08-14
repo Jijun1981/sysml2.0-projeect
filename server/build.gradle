@@ -1,0 +1,123 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.0'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'com.diffplug.spotless' version '6.23.3'
+}
+
+def skipCDO = project.hasProperty('skipCDO') && project.property('skipCDO').toString().toBoolean()
+def useLocalCDO = true // 强制使用本地CDO
+
+group = 'com.sysml.platform'
+version = '1.0.0'
+sourceCompatibility = '17'
+targetCompatibility = '17'
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+// CDO JAR配置 - 使用本地CDO JAR文件
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    // Eclipse / EMF / CDO artifact repositories
+    maven { url 'https://download.eclipse.org/releases/latest' }
+    maven { url 'https://download.eclipse.org/tools/cdo/maven' }
+    maven { url 'https://repo.eclipse.org/content/groups/releases/' }
+    maven { url 'https://repo.eclipse.org/content/groups/modeling/' }
+    maven { url 'https://repo.eclipse.org/content/repositories/cdo-releases/' }
+}
+
+dependencies {
+    // Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-graphql'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    
+    // GraphQL
+    implementation 'com.graphql-java:graphql-java-extended-scalars:21.0'
+    implementation 'com.graphql-java:java-dataloader:3.2.0'
+    
+    // EMF core (always required for local Ecore loading)
+    implementation 'org.eclipse.emf:org.eclipse.emf.ecore:2.35.0'
+    implementation 'org.eclipse.emf:org.eclipse.emf.common:2.29.0'
+    implementation 'org.eclipse.emf:org.eclipse.emf.ecore.xmi:2.35.0'
+    implementation 'org.eclipse.emf:org.eclipse.emf.ecore.change:2.14.0'
+
+    // CDO (optional; can be skipped via -PskipCDO=true)
+    if (!skipCDO) {
+        if (useLocalCDO) {
+            // 使用本地CDO JAR文件
+            implementation fileTree(dir: 'libs/cdo', include: '*.jar')
+            // 添加Eclipse运行时依赖
+            implementation 'org.eclipse.platform:org.eclipse.core.runtime:3.29.0'
+            println "Using local CDO JARs from libs/cdo"
+        } else {
+            implementation 'org.eclipse.emf.cdo:org.eclipse.emf.cdo.server:4.23.0'
+            implementation 'org.eclipse.emf.cdo:org.eclipse.emf.cdo.server.db:4.23.0'
+        }
+    }
+    
+    // Database (PostgreSQL only)
+    implementation 'org.postgresql:postgresql'
+    
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.springframework.graphql:spring-graphql-test'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.2.0'
+    testImplementation 'org.eclipse.emf:org.eclipse.emf.ecore.xmi:2.35.0'
+    // Testcontainers for PostgreSQL
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.7'
+    testImplementation 'org.testcontainers:postgresql:1.19.7'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// Spring Boot jar naming to match scripts
+tasks.named('bootJar') {
+    archiveBaseName = 'sysml-platform'
+}
+
+// 架构测试
+task architectureTest(type: Test) {
+    include '**/arch/**'
+    outputs.upToDateWhen { false }
+}
+
+// 性能测试
+task performanceTest(type: Test) {
+    include '**/perf/**'
+    systemProperty 'dataset', System.getProperty('dataset', 'small')
+}
+
+// 代码格式化
+spotless {
+    java {
+        googleJavaFormat()
+        removeUnusedImports()
+    }
+}
+
+// 编译期可选排除具体的CDO配置类，保留本地Ecore加载器
+if (skipCDO) {
+    sourceSets {
+        main {
+            java {
+                exclude 'com/sysml/platform/infrastructure/cdo/CDOConfig.java'
+            }
+        }
+    }
+}

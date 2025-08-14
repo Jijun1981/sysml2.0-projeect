@@ -1,0 +1,168 @@
+{
+  "name": "Structure Modeler",
+  "id": "sysml.structure.modeler",
+  "version": "1.0.0",
+  "description": "SysML v2 Structure modeling views",
+  "metamodel": {
+    "uri": "http://www.omg.org/sysml/2.0",
+    "packages": ["Structure", "Core"]
+  },
+  "views": [
+    {
+      "id": "structure.tree",
+      "name": "Structure Tree",
+      "type": "tree",
+      "description": "Hierarchical view of parts and connections",
+      "domainClass": "sysml::Part",
+      "mappings": [
+        {
+          "id": "part.node",
+          "domainClass": "Part",
+          "label": "aql:self.name + ' : ' + self.type.name",
+          "icon": "/icons/part.svg",
+          "children": [
+            {
+              "feature": "ownedParts",
+              "mapping": "part.node"
+            },
+            {
+              "feature": "ownedPorts",
+              "mapping": "port.node"
+            }
+          ]
+        },
+        {
+          "id": "port.node",
+          "domainClass": "Port",
+          "label": "aql:self.name + ' [' + self.direction + ']'",
+          "icon": "/icons/port.svg"
+        }
+      ]
+    },
+    {
+      "id": "structure.diagram",
+      "name": "Internal Block Diagram",
+      "type": "diagram",
+      "description": "Internal structure with parts, ports and connections",
+      "palette": [
+        {
+          "group": "Parts",
+          "tools": [
+            {
+              "id": "part.tool",
+              "name": "Part",
+              "icon": "/icons/part.svg"
+            },
+            {
+              "id": "port.tool",
+              "name": "Port",
+              "icon": "/icons/port.svg"
+            }
+          ]
+        },
+        {
+          "group": "Connections",
+          "tools": [
+            {
+              "id": "connection.tool",
+              "name": "Connection",
+              "icon": "/icons/connection.svg"
+            }
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "part.shape",
+          "domainClass": "Part",
+          "style": {
+            "shape": "rectangle",
+            "borderColor": "#6B7280",
+            "backgroundColor": "#FFFFFF",
+            "borderWidth": 2,
+            "labelPosition": "header"
+          },
+          "ports": [
+            {
+              "id": "port.border",
+              "domainClass": "Port",
+              "style": {
+                "shape": "square",
+                "size": 10,
+                "borderColor": "#111827",
+                "backgroundColor": "#FFFFFF"
+              }
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "connection.edge",
+          "sourceMapping": "port.border",
+          "targetMapping": "port.border",
+          "domainClass": "Connection",
+          "style": {
+            "lineStyle": "solid",
+            "sourceArrow": "none",
+            "targetArrow": "none",
+            "lineWidth": 2
+          }
+        }
+      ],
+      "containers": [
+        {
+          "id": "part.container",
+          "domainClass": "Part",
+          "childrenMappings": ["part.shape"],
+          "style": {
+            "borderStyle": "solid",
+            "borderColor": "#9CA3AF",
+            "backgroundColor": "#F9FAFB"
+          }
+        }
+      ]
+    },
+    {
+      "id": "structure.properties",
+      "name": "Properties View",
+      "type": "form",
+      "description": "Edit properties of selected elements",
+      "sections": [
+        {
+          "name": "General",
+          "widgets": [
+            {
+              "type": "textfield",
+              "label": "Name",
+              "feature": "name"
+            },
+            {
+              "type": "textarea",
+              "label": "Description",
+              "feature": "description"
+            }
+          ]
+        },
+        {
+          "name": "Port Properties",
+          "condition": "aql:self.oclIsKindOf(Port)",
+          "widgets": [
+            {
+              "type": "select",
+              "label": "Direction",
+              "feature": "direction",
+              "options": ["in", "out", "inout"]
+            },
+            {
+              "type": "select",
+              "label": "Type",
+              "feature": "type",
+              "options": ["power", "data", "signal", "material"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

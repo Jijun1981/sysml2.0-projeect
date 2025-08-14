@@ -1,0 +1,47 @@
+// 构建一个CDO存根来满足编译需求
+apply plugin: 'java'
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/cdo-stub'
+        }
+    }
+}
+
+task createCDOStub {
+    doLast {
+        def stubDir = file('src/cdo-stub')
+        stubDir.mkdirs()
+        
+        // 创建最小的CDO接口存根
+        def packages = [
+            'org/eclipse/emf/cdo',
+            'org/eclipse/emf/cdo/common/id', 
+            'org/eclipse/emf/cdo/session',
+            'org/eclipse/emf/cdo/transaction',
+            'org/eclipse/emf/cdo/server',
+            'org/eclipse/net4j'
+        ]
+        
+        packages.each { pkg ->
+            file("$stubDir/$pkg").mkdirs()
+        }
+        
+        // 创建基本接口
+        file("$stubDir/org/eclipse/emf/cdo/session/CDOSession.java").text = '''
+package org.eclipse.emf.cdo.session;
+public interface CDOSession {
+    void close();
+}
+'''
+        
+        file("$stubDir/org/eclipse/emf/cdo/transaction/CDOTransaction.java").text = '''
+package org.eclipse.emf.cdo.transaction;
+public interface CDOTransaction {
+    void commit();
+    void rollback();
+}
+'''
+    }
+}

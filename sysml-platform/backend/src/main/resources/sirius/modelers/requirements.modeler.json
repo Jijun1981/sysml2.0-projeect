@@ -1,0 +1,156 @@
+{
+  "name": "Requirements Modeler",
+  "id": "sysml.requirements.modeler",
+  "version": "1.0.0",
+  "description": "SysML v2 Requirements modeling views",
+  "metamodel": {
+    "uri": "http://www.omg.org/sysml/2.0",
+    "packages": ["Requirements", "Core"]
+  },
+  "views": [
+    {
+      "id": "requirements.tree",
+      "name": "Requirements Tree",
+      "type": "tree",
+      "description": "Hierarchical view of requirements",
+      "domainClass": "sysml::Requirement",
+      "mappings": [
+        {
+          "id": "requirement.node",
+          "domainClass": "Requirement",
+          "label": "aql:self.name + ' [' + self.reqId + ']'",
+          "icon": "/icons/requirement.svg",
+          "children": [
+            {
+              "feature": "derivedRequirements",
+              "mapping": "requirement.node"
+            },
+            {
+              "feature": "refinedRequirements", 
+              "mapping": "requirement.node"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        {
+          "id": "create.requirement",
+          "name": "Create Requirement",
+          "icon": "/icons/add-requirement.svg",
+          "operation": {
+            "type": "create",
+            "domainClass": "Requirement",
+            "initializer": "aql:self.setName('New Requirement')"
+          }
+        },
+        {
+          "id": "delete.requirement",
+          "name": "Delete Requirement",
+          "operation": {
+            "type": "delete"
+          }
+        }
+      ]
+    },
+    {
+      "id": "requirements.table",
+      "name": "Requirements Table",
+      "type": "table",
+      "description": "Tabular view of requirements",
+      "domainClass": "sysml::Requirement",
+      "columns": [
+        {
+          "name": "ID",
+          "feature": "reqId",
+          "width": 100
+        },
+        {
+          "name": "Name",
+          "feature": "name",
+          "width": 200
+        },
+        {
+          "name": "Text",
+          "feature": "text",
+          "width": 400
+        },
+        {
+          "name": "Status",
+          "feature": "status",
+          "width": 100
+        },
+        {
+          "name": "Priority",
+          "feature": "priority",
+          "width": 100
+        }
+      ]
+    },
+    {
+      "id": "requirements.diagram",
+      "name": "Requirements Diagram",
+      "type": "diagram",
+      "description": "Graphical view of requirements and relationships",
+      "palette": [
+        {
+          "group": "Requirements",
+          "tools": [
+            {
+              "id": "requirement.tool",
+              "name": "Requirement",
+              "icon": "/icons/requirement.svg"
+            },
+            {
+              "id": "derive.tool",
+              "name": "Derive",
+              "icon": "/icons/derive.svg"
+            },
+            {
+              "id": "refine.tool",
+              "name": "Refine",
+              "icon": "/icons/refine.svg"
+            }
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "requirement.shape",
+          "domainClass": "Requirement",
+          "style": {
+            "shape": "rectangle",
+            "borderColor": "#4B5563",
+            "backgroundColor": "#F3F4F6",
+            "labelPosition": "inside"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "derive.edge",
+          "sourceMapping": "requirement.shape",
+          "targetMapping": "requirement.shape",
+          "domainClass": "DeriveRelationship",
+          "style": {
+            "lineStyle": "dashed",
+            "sourceArrow": "none",
+            "targetArrow": "open",
+            "label": "«derive»"
+          }
+        },
+        {
+          "id": "refine.edge",
+          "sourceMapping": "requirement.shape",
+          "targetMapping": "requirement.shape",
+          "domainClass": "RefineRelationship",
+          "style": {
+            "lineStyle": "solid",
+            "sourceArrow": "none",
+            "targetArrow": "open",
+            "label": "«refine»"
+          }
+        }
+      ]
+    }
+  ]
+}

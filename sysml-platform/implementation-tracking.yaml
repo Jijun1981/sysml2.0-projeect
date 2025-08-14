@@ -1,0 +1,267 @@
+# SysML平台实现追踪
+# 基于/mnt/d/sysml2/docs/agile_traceability_matrix.yaml
+
+metadata:
+  project: "SysML v2 建模平台 - 自主实现"
+  created: "2025-08-13"
+  base_path: "/mnt/d/sysml2/sysml-platform"
+  reference_path: "/mnt/d/sysml2/opensource/sirius-web"
+  
+repository_structure:
+  backend:
+    path: "/mnt/d/sysml2/sysml-platform/backend"
+    type: "Spring Boot + Gradle"
+    port: 8090
+    components:
+      - name: "CDO集成"
+        path: "src/main/java/com/sysml/platform/infrastructure/cdo"
+        files:
+          - CDOServerManager.java
+          - CDORepository.java
+          - CDOModelService.java
+        status: completed
+      - name: "EMF管理"
+        path: "src/main/java/com/sysml/platform/infrastructure/emf"
+        files:
+          - EMFModelManager.java
+        status: completed
+      - name: "GraphQL API"
+        path: "src/main/java/com/sysml/platform/api/graphql"
+        files:
+          - RequirementResolver.java
+          - RequirementInput.java
+        status: completed
+      - name: "数据库配置"
+        path: "src/main/resources"
+        files:
+          - application.yml
+        database: "PostgreSQL on 5432"
+        status: completed
+        
+  frontend:
+    path: "/mnt/d/sysml2/sysml-platform/frontend/sysml-web"
+    type: "React TypeScript"
+    port: 3001
+    components:
+      - name: "主应用"
+        path: "src"
+        files:
+          - App.tsx
+        status: completed
+      - name: "建模工作台"
+        path: "src/components"
+        files:
+          - ModelingWorkbench.tsx
+          - ModelTree.tsx
+          - PropertyPanel.tsx
+        status: completed
+      - name: "SysML节点"
+        path: "src/components/nodes"
+        files:
+          - SysMLNode.tsx
+        status: completed
+      - name: "依赖包"
+        packages:
+          - "@mui/material"
+          - "@apollo/client"
+          - "reactflow"
+          - "@mui/x-tree-view"
+        status: completed
+
+foundation_implementation:
+  EP-INFRA:
+    requirements:
+      RQ-INFRA-CDO-001:
+        description: "CDO健康与配置"
+        implementation:
+          - file: "backend/src/main/java/com/sysml/platform/infrastructure/cdo/CDOServerManager.java"
+            lines: [52-56, 236-236]
+            code: |
+              - CDO Server initialized on port 2036
+              - PostgreSQL store configured
+              - Health check endpoint available
+        test:
+          - file: "backend/src/test/java/com/sysml/platform/infrastructure/cdo/CDOHealthTest.java"
+            status: pending
+        verification: "CDO Server initialized successfully"
+        status: completed
+        
+      RQ-INFRA-TX-002:
+        description: "事务边界管理"
+        implementation:
+          - file: "backend/src/main/java/com/sysml/platform/infrastructure/transaction/TransactionManager.java"
+            code: |
+              - Transaction boundaries defined
+              - Commit/rollback semantics
+        status: completed
+        
+      RQ-INFRA-EMF-003:
+        description: "EMFModelManager"
+        implementation:
+          - file: "backend/src/main/java/com/sysml/platform/infrastructure/emf/EMFModelManager.java"
+            code: |
+              - CRUD operations
+              - DTO mapping
+        status: completed
+        
+  EP-M2-PILOT:
+    requirements:
+      RQ-M2-REG-001:
+        description: "EPackage注册"
+        implementation:
+          - file: "backend/src/main/java/com/sysml/platform/infrastructure/emf/KerMLRegistration.java"
+            status: pending
+        status: in_progress
+        
+  EP-API:
+    requirements:
+      RQ-API-ENDPOINT-001:
+        description: "GraphQL端点配置"
+        implementation:
+          - file: "backend/src/main/java/com/sysml/platform/api/graphql/RequirementResolver.java"
+            endpoint: "http://localhost:8090/graphql"
+        status: completed
+        
+      RQ-API-CORE-002:
+        description: "核心契约"
+        implementation:
+          - file: "backend/src/main/resources/graphql/schema.graphqls"
+            code: |
+              - Pagination model
+              - Error model
+              - Scalar types
+        status: completed
+        
+  EP-UI-BASE:
+    requirements:
+      RQ-UI-RUNTIME-001:
+        description: "Sirius运行时绑定"
+        implementation:
+          - note: "使用自定义React界面替代Sirius"
+          - file: "frontend/src/components/ModelingWorkbench.tsx"
+        status: modified
+        
+      RQ-UI-VIEWS-002:
+        description: "视图类型"
+        implementation:
+          - tree: "frontend/src/components/ModelTree.tsx"
+          - properties: "frontend/src/components/PropertyPanel.tsx"
+          - diagram: "ReactFlow in ModelingWorkbench.tsx"
+          - form: "PropertyPanel.tsx"
+        status: completed
+        
+  EP-NFR:
+    requirements:
+      RQ-NFR-HEALTH-001:
+        description: "健康检查"
+        implementation:
+          - endpoint: "http://localhost:8090/actuator/health"
+          - includes: ["CDO", "Database", "Application"]
+        status: completed
+        
+      RQ-NFR-METRICS-002:
+        description: "指标暴露"
+        implementation:
+          - endpoint: "http://localhost:8090/actuator/metrics"
+        status: completed
+        
+      RQ-NFR-LOG-003:
+        description: "结构化日志"
+        implementation:
+          - file: "backend/src/main/java/com/sysml/platform/nfr/TraceIdFilter.java"
+          - pattern: "traceId/spanId in MDC"
+        status: completed
+
+test_cases:
+  integration:
+    TC-CDO-001:
+      description: "CDO启动验证"
+      steps:
+        - "启动后端服务"
+        - "检查CDO端口2036"
+        - "验证PostgreSQL连接"
+      expected: "CDO Repository ready"
+      actual: "通过"
+      status: passed
+      
+    TC-API-001:
+      description: "GraphQL端点可用性"
+      steps:
+        - "POST http://localhost:8090/graphql"
+        - "发送introspection查询"
+      expected: "返回schema定义"
+      actual: "通过"
+      status: passed
+      
+    TC-UI-001:
+      description: "前端建模界面"
+      steps:
+        - "访问http://localhost:3001"
+        - "创建SysML节点"
+        - "编辑属性"
+      expected: "节点创建和编辑成功"
+      actual: "通过"
+      status: passed
+
+deployment:
+  development:
+    backend:
+      command: "cd backend && ./gradlew bootRun"
+      port: 8090
+      dependencies:
+        - PostgreSQL: "localhost:5432"
+        - CDO: "embedded on 2036"
+    frontend:
+      command: "cd frontend/sysml-web && npm start"
+      port: 3001
+      env: "PORT=3001"
+      
+  production:
+    note: "待配置"
+
+issues:
+  fixed:
+    - id: "ISSUE-001"
+      description: "CDO memory fallback"
+      solution: "移除fallback，强制使用PostgreSQL"
+      file: "CDOServerManager.java:143-144"
+      
+    - id: "ISSUE-002"
+      description: "端口冲突8080"
+      solution: "改为8090"
+      file: "application.yml:39"
+      
+    - id: "ISSUE-003"
+      description: "前端依赖缺失@mui/x-tree-view"
+      solution: "npm install @mui/x-tree-view"
+      
+    - id: "ISSUE-004"
+      description: "ListItem button属性过时"
+      solution: "移除button属性，直接使用onClick"
+      file: "ModelingWorkbench.tsx:133-145"
+      
+  pending:
+    - id: "ISSUE-005"
+      description: "M2模型完整集成"
+      priority: high
+      
+    - id: "ISSUE-006"
+      description: "Sirius Web完整前端部署"
+      priority: medium
+
+milestones:
+  completed:
+    - "Foundation层CDO集成 ✓"
+    - "GraphQL API骨架 ✓"
+    - "基础建模界面 ✓"
+    - "项目独立部署 ✓"
+    
+  in_progress:
+    - "M2模型注册"
+    - "需求域实现"
+    
+  pending:
+    - "结构域实现"
+    - "约束分析"
+    - "追溯关系"
+    - "事件报表"

@@ -1,0 +1,643 @@
+# SysML 2.0建模系统敏捷开发追踪矩阵
+# 项目：基于官方sysml-v2-pilot + PostgreSQL JSONB的SysML 2.0建模系统
+# 技术栈：Spring Boot + GraphQL + PostgreSQL + Sirius Web
+# 一阶段目标：4-6周完成基础设施，实现8个核心元类的CRUD操作
+
+metadata:
+  project_name: "SysML 2.0建模系统"
+  project_version: "v1.0.0-phase1"
+  created_date: "2025-08-03"
+  last_updated: "2025-08-03"
+  phase: "一阶段实施"
+  duration: "4-6周"
+  team_size: "2-3人"
+  technology_stack:
+    - "Spring Boot 3.x"
+    - "GraphQL"
+    - "PostgreSQL 15+"
+    - "JSONB存储"
+    - "Sirius Web"
+    - "官方sysml-v2-pilot"
+
+# Epic层级 - 对应Week 1-6的实施计划
+epics:
+  epic_001:
+    id: "EP-001"
+    name: "官方SysML库集成与元模型加载"
+    description: "集成官方sysml-v2-pilot库，建立元模型基础架构"
+    priority: "高"
+    business_value: "为整个系统提供标准化的SysML 2.0元模型基础"
+    acceptance_criteria:
+      - "官方sysml-v2-pilot库成功集成到项目中"
+      - "元模型加载机制正常工作"
+      - "8个核心元类的元数据正确加载"
+      - "元模型验证通过单元测试"
+    duration_weeks: 2
+    status: "pending"
+    tags: ["metamodel", "integration", "foundation"]
+
+  epic_002:
+    id: "EP-002"
+    name: "PostgreSQL JSONB持久化基础设施"
+    description: "建立基于PostgreSQL JSONB的持久化层架构"
+    priority: "高"
+    business_value: "提供高性能、灵活的数据存储解决方案"
+    acceptance_criteria:
+      - "PostgreSQL数据库连接和配置完成"
+      - "JSONB存储模式设计完成"
+      - "基础持久化框架搭建完成"
+      - "数据访问层性能满足要求"
+    duration_weeks: 1.5
+    status: "pending"
+    tags: ["persistence", "database", "jsonb"]
+
+  epic_003:
+    id: "EP-003"
+    name: "8个核心元类的M1实例CRUD服务"
+    description: "实现8个核心元类的完整CRUD操作服务层"
+    priority: "高"
+    business_value: "提供核心业务功能，支持SysML模型的基本操作"
+    acceptance_criteria:
+      - "8个核心元类的服务层全部实现"
+      - "CRUD操作通过集成测试"
+      - "数据验证和业务规则正确执行"
+      - "服务层性能指标达标"
+    duration_weeks: 2
+    status: "pending"
+    tags: ["services", "crud", "business-logic"]
+
+  epic_004:
+    id: "EP-004"
+    name: "GraphQL API层实现"
+    description: "构建GraphQL API层，提供统一的数据访问接口"
+    priority: "中"
+    business_value: "为前端和外部系统提供灵活、高效的API接口"
+    acceptance_criteria:
+      - "GraphQL Schema设计完成"
+      - "查询和变更操作全部实现"
+      - "API文档自动生成"
+      - "API性能和安全性测试通过"
+    duration_weeks: 1.5
+    status: "pending"
+    tags: ["api", "graphql", "interface"]
+
+# Story层级 - 具体用户故事
+stories:
+  # Epic 1 Stories
+  story_001:
+    id: "US-001"
+    epic_id: "EP-001"
+    name: "官方sysml-v2-pilot库集成"
+    user_story: "作为一名系统架构师，我希望集成官方sysml-v2-pilot库，以便使用标准化的SysML 2.0元模型定义"
+    acceptance_criteria:
+      - "maven依赖正确添加到项目中"
+      - "官方库的关键类可以正常导入和使用"
+      - "库版本兼容性验证通过"
+      - "许可证合规性检查完成"
+    priority: "高"
+    story_points: 5
+    status: "pending"
+    tags: ["integration", "maven", "dependencies"]
+    test_cases: []
+    implementation_files: []
+
+  story_002:
+    id: "US-002"
+    epic_id: "EP-001"
+    name: "元模型加载器实现"
+    user_story: "作为一名开发人员，我希望实现元模型加载器，以便在系统启动时自动加载SysML 2.0元模型"
+    acceptance_criteria:
+      - "元模型加载器类设计和实现完成"
+      - "支持从官方库加载标准元模型"
+      - "加载过程异常处理机制完善"
+      - "加载状态监控和日志记录"
+    priority: "高"
+    story_points: 8
+    status: "pending"
+    tags: ["metamodel", "loader", "startup"]
+    test_cases: []
+    implementation_files: []
+
+  story_003:
+    id: "US-003"
+    epic_id: "EP-001"
+    name: "8个核心元类元数据提取"
+    user_story: "作为一名建模专家，我希望系统能够正确提取8个核心元类的元数据，以便支持后续的实例化操作"
+    acceptance_criteria:
+      - "Package、Class、Part、Port、Connector、Action、State、Requirement 8个元类元数据正确提取"
+      - "元类属性、关系、约束信息完整"
+      - "元数据验证机制完善"
+      - "元数据缓存机制实现"
+    priority: "高"
+    story_points: 13
+    status: "pending"
+    tags: ["metaclass", "metadata", "extraction"]
+    test_cases: []
+    implementation_files: []
+
+  # Epic 2 Stories
+  story_004:
+    id: "US-004"
+    epic_id: "EP-002"
+    name: "PostgreSQL数据库环境搭建"
+    user_story: "作为一名系统管理员，我希望搭建PostgreSQL数据库环境，以便为系统提供稳定的数据存储服务"
+    acceptance_criteria:
+      - "PostgreSQL 15+数据库安装和配置"
+      - "数据库连接池配置优化"
+      - "备份和恢复策略制定"
+      - "监控和维护工具配置"
+    priority: "高"
+    story_points: 5
+    status: "pending"
+    tags: ["database", "setup", "configuration"]
+    test_cases: []
+    implementation_files: []
+
+  story_005:
+    id: "US-005"
+    epic_id: "EP-002"
+    name: "JSONB存储模式设计"
+    user_story: "作为一名数据库设计师，我希望设计JSONB存储模式，以便高效存储和查询SysML模型数据"
+    acceptance_criteria:
+      - "数据表结构设计文档完成"
+      - "JSONB字段设计规范制定"
+      - "索引策略设计和实现"
+      - "数据迁移脚本准备"
+    priority: "高"
+    story_points: 8
+    status: "pending"
+    tags: ["schema", "jsonb", "design"]
+    test_cases: []
+    implementation_files: []
+
+  story_006:
+    id: "US-006"
+    epic_id: "EP-002"
+    name: "持久化层框架搭建"
+    user_story: "作为一名后端开发人员，我希望搭建持久化层框架，以便提供统一的数据访问接口"
+    acceptance_criteria:
+      - "Spring Data JPA配置完成"
+      - "Repository层接口设计完成"
+      - "实体类映射关系建立"
+      - "事务管理机制实现"
+    priority: "高"
+    story_points: 8
+    status: "pending"
+    tags: ["persistence", "jpa", "repository"]
+    test_cases: []
+    implementation_files: []
+
+  # Epic 3 Stories
+  story_007:
+    id: "US-007"
+    epic_id: "EP-003"
+    name: "Package元类CRUD服务"
+    user_story: "作为一名建模用户，我希望能够创建、读取、更新和删除Package实例，以便组织和管理我的模型结构"
+    acceptance_criteria:
+      - "Package实体类和服务类实现"
+      - "创建、查询、更新、删除操作完整实现"
+      - "数据验证和业务规则检查"
+      - "单元测试和集成测试通过"
+    priority: "高"
+    story_points: 8
+    status: "pending"
+    tags: ["package", "crud", "service"]
+    test_cases: []
+    implementation_files: []
+
+  story_008:
+    id: "US-008"
+    epic_id: "EP-003"
+    name: "Class元类CRUD服务"
+    user_story: "作为一名建模用户，我希望能够创建、读取、更新和删除Class实例，以便定义系统中的分类器"
+    acceptance_criteria:
+      - "Class实体类和服务类实现"
+      - "创建、查询、更新、删除操作完整实现"
+      - "继承关系处理机制"
+      - "单元测试和集成测试通过"
+    priority: "高"
+    story_points: 10
+    status: "pending"
+    tags: ["class", "crud", "service"]
+    test_cases: []
+    implementation_files: []
+
+  story_009:
+    id: "US-009"
+    epic_id: "EP-003"
+    name: "Part元类CRUD服务"
+    user_story: "作为一名建模用户，我希望能够创建、读取、更新和删除Part实例，以便定义系统的组成部分"
+    acceptance_criteria:
+      - "Part实体类和服务类实现"
+      - "创建、查询、更新、删除操作完整实现"
+      - "组合关系处理机制"
+      - "单元测试和集成测试通过"
+    priority: "高"
+    story_points: 10
+    status: "pending"
+    tags: ["part", "crud", "service"]
+    test_cases: []
+    implementation_files: []
+
+  story_010:
+    id: "US-010"
+    epic_id: "EP-003"
+    name: "Port元类CRUD服务"
+    user_story: "作为一名建模用户，我希望能够创建、读取、更新和删除Port实例，以便定义组件的接口点"
+    acceptance_criteria:
+      - "Port实体类和服务类实现"
+      - "创建、查询、更新、删除操作完整实现"
+      - "端口类型和方向处理"
+      - "单元测试和集成测试通过"
+    priority: "高"
+    story_points: 8
+    status: "pending"
+    tags: ["port", "crud", "service"]
+    test_cases: []
+    implementation_files: []
+
+  story_011:
+    id: "US-011"
+    epic_id: "EP-003"
+    name: "Connector元类CRUD服务"
+    user_story: "作为一名建模用户，我希望能够创建、读取、更新和删除Connector实例，以便定义组件之间的连接"
+    acceptance_criteria:
+      - "Connector实体类和服务类实现"
+      - "创建、查询、更新、删除操作完整实现"
+      - "连接端点验证机制"
+      - "单元测试和集成测试通过"
+    priority: "高"
+    story_points: 10
+    status: "pending"
+    tags: ["connector", "crud", "service"]
+    test_cases: []
+    implementation_files: []
+
+  story_012:
+    id: "US-012"
+    epic_id: "EP-003"
+    name: "Action元类CRUD服务"
+    user_story: "作为一名建模用户，我希望能够创建、读取、更新和删除Action实例，以便定义系统的行为"
+    acceptance_criteria:
+      - "Action实体类和服务类实现"
+      - "创建、查询、更新、删除操作完整实现"
+      - "动作执行条件处理"
+      - "单元测试和集成测试通过"
+    priority: "中"
+    story_points: 8
+    status: "pending"
+    tags: ["action", "crud", "service"]
+    test_cases: []
+    implementation_files: []
+
+  story_013:
+    id: "US-013"
+    epic_id: "EP-003"
+    name: "State元类CRUD服务"
+    user_story: "作为一名建模用户，我希望能够创建、读取、更新和删除State实例，以便定义系统的状态"
+    acceptance_criteria:
+      - "State实体类和服务类实现"
+      - "创建、查询、更新、删除操作完整实现"
+      - "状态转换关系处理"
+      - "单元测试和集成测试通过"
+    priority: "中"
+    story_points: 8
+    status: "pending"
+    tags: ["state", "crud", "service"]
+    test_cases: []
+    implementation_files: []
+
+  story_014:
+    id: "US-014"
+    epic_id: "EP-003"
+    name: "Requirement元类CRUD服务"
+    user_story: "作为一名需求分析师，我希望能够创建、读取、更新和删除Requirement实例，以便管理系统需求"
+    acceptance_criteria:
+      - "Requirement实体类和服务类实现"
+      - "创建、查询、更新、删除操作完整实现"
+      - "需求追踪关系处理"
+      - "单元测试和集成测试通过"
+    priority: "中"
+    story_points: 10
+    status: "pending"
+    tags: ["requirement", "crud", "service"]
+    test_cases: []
+    implementation_files: []
+
+  # Epic 4 Stories
+  story_015:
+    id: "US-015"
+    epic_id: "EP-004"
+    name: "GraphQL Schema设计"
+    user_story: "作为一名API设计师，我希望设计GraphQL Schema，以便为前端提供灵活的数据查询接口"
+    acceptance_criteria:
+      - "GraphQL Schema文件设计完成"
+      - "类型定义覆盖所有核心元类"
+      - "查询和变更操作定义完整"
+      - "Schema验证工具集成"
+    priority: "中"
+    story_points: 8
+    status: "pending"
+    tags: ["graphql", "schema", "design"]
+    test_cases: []
+    implementation_files: []
+
+  story_016:
+    id: "US-016"
+    epic_id: "EP-004"
+    name: "GraphQL Resolver实现"
+    user_story: "作为一名后端开发人员，我希望实现GraphQL Resolver，以便处理前端的查询和变更请求"
+    acceptance_criteria:
+      - "所有查询操作的Resolver实现"
+      - "所有变更操作的Resolver实现"
+      - "数据加载优化机制"
+      - "错误处理和日志记录"
+    priority: "中"
+    story_points: 13
+    status: "pending"
+    tags: ["graphql", "resolver", "implementation"]
+    test_cases: []
+    implementation_files: []
+
+  story_017:
+    id: "US-017"
+    epic_id: "EP-004"
+    name: "API文档和测试工具"
+    user_story: "作为一名前端开发人员，我希望有完整的API文档和测试工具，以便快速了解和使用API接口"
+    acceptance_criteria:
+      - "GraphQL Playground集成"
+      - "API文档自动生成"
+      - "示例查询和变更提供"
+      - "API性能测试工具集成"
+    priority: "低"
+    story_points: 5
+    status: "pending"
+    tags: ["documentation", "testing", "tools"]
+    test_cases: []
+    implementation_files: []
+
+# Requirements层级 - 技术需求细化
+requirements:
+  # Epic 1 Requirements
+  req_001:
+    id: "REQ-001"
+    story_id: "US-001"
+    name: "Maven依赖管理"
+    description: "配置和管理官方sysml-v2-pilot库的Maven依赖"
+    type: "技术需求"
+    priority: "高"
+    status: "pending"
+    tags: ["maven", "dependencies"]
+    test_cases: []
+    implementation_files: []
+
+  req_002:
+    id: "REQ-002"
+    story_id: "US-002"
+    name: "元模型加载器设计"
+    description: "设计和实现元模型加载器的核心逻辑"
+    type: "技术需求"
+    priority: "高"
+    status: "pending"
+    tags: ["loader", "design"]
+    test_cases: []
+    implementation_files: []
+
+  req_003:
+    id: "REQ-003"
+    story_id: "US-003"
+    name: "元类元数据解析"
+    description: "实现8个核心元类的元数据解析逻辑"
+    type: "技术需求"
+    priority: "高"
+    status: "pending"
+    tags: ["parsing", "metadata"]
+    test_cases: []
+    implementation_files: []
+
+  # Epic 2 Requirements
+  req_004:
+    id: "REQ-004"
+    story_id: "US-004"
+    name: "数据库连接配置"
+    description: "配置PostgreSQL数据库连接和连接池"
+    type: "技术需求"
+    priority: "高"
+    status: "pending"
+    tags: ["database", "connection"]
+    test_cases: []
+    implementation_files: []
+
+  req_005:
+    id: "REQ-005"
+    story_id: "US-005"
+    name: "JSONB数据模型设计"
+    description: "设计基于JSONB的数据存储模型"
+    type: "技术需求"
+    priority: "高"
+    status: "pending"
+    tags: ["jsonb", "model"]
+    test_cases: []
+    implementation_files: []
+
+  req_006:
+    id: "REQ-006"
+    story_id: "US-006"
+    name: "Repository接口设计"
+    description: "设计统一的Repository接口规范"
+    type: "技术需求"
+    priority: "高"
+    status: "pending"
+    tags: ["repository", "interface"]
+    test_cases: []
+    implementation_files: []
+
+  # Epic 3 Requirements (示例几个核心元类)
+  req_007:
+    id: "REQ-007"
+    story_id: "US-007"
+    name: "Package实体映射"
+    description: "实现Package实体与数据库的映射关系"
+    type: "技术需求"
+    priority: "高"
+    status: "pending"
+    tags: ["package", "entity"]
+    test_cases: []
+    implementation_files: []
+
+  req_008:
+    id: "REQ-008"
+    story_id: "US-007"
+    name: "Package服务层逻辑"
+    description: "实现Package的业务逻辑和验证规则"
+    type: "技术需求"
+    priority: "高"
+    status: "pending"
+    tags: ["package", "service"]
+    test_cases: []
+    implementation_files: []
+
+  req_009:
+    id: "REQ-009"
+    story_id: "US-008"
+    name: "Class继承关系处理"
+    description: "实现Class元类的继承关系处理逻辑"
+    type: "技术需求"
+    priority: "高"
+    status: "pending"
+    tags: ["class", "inheritance"]
+    test_cases: []
+    implementation_files: []
+
+  # Epic 4 Requirements
+  req_010:
+    id: "REQ-010"
+    story_id: "US-015"
+    name: "GraphQL类型定义"
+    description: "定义GraphQL Schema中的所有类型"
+    type: "技术需求"
+    priority: "中"
+    status: "pending"
+    tags: ["graphql", "types"]
+    test_cases: []
+    implementation_files: []
+
+  req_011:
+    id: "REQ-011"
+    story_id: "US-016"
+    name: "查询优化机制"
+    description: "实现GraphQL查询的性能优化机制"
+    type: "技术需求"
+    priority: "中"
+    status: "pending"
+    tags: ["graphql", "optimization"]
+    test_cases: []
+    implementation_files: []
+
+# 测试策略和占位符
+test_strategy:
+  unit_tests:
+    framework: "JUnit 5"
+    coverage_target: "85%"
+    naming_convention: "Test类名 + Test后缀"
+    location: "src/test/java"
+  
+  integration_tests:
+    framework: "Spring Boot Test"
+    database: "H2内存数据库"
+    location: "src/test/java/integration"
+  
+  performance_tests:
+    framework: "JMeter"
+    target_response_time: "< 500ms"
+    target_throughput: "> 1000 req/min"
+
+# 代码占位符配置
+code_placeholders:
+  source_root: "src/main/java"
+  test_root: "src/test/java"
+  base_package: "com.sysml.modeling"
+  
+  package_structure:
+    entities: "com.sysml.modeling.entity"
+    repositories: "com.sysml.modeling.repository"
+    services: "com.sysml.modeling.service"
+    controllers: "com.sysml.modeling.controller"
+    graphql: "com.sysml.modeling.graphql"
+    config: "com.sysml.modeling.config"
+
+# 追踪标签系统
+tracking_tags:
+  technology:
+    - "spring-boot"
+    - "graphql"
+    - "postgresql"
+    - "jsonb"
+    - "jpa"
+    - "maven"
+  
+  functionality:
+    - "metamodel"
+    - "persistence"
+    - "crud"
+    - "api"
+    - "validation"
+    - "testing"
+  
+  metaclass:
+    - "package"
+    - "class"
+    - "part"
+    - "port"
+    - "connector"
+    - "action"
+    - "state"
+    - "requirement"
+
+# 状态追踪
+status_definitions:
+  pending: "待开始"
+  in_progress: "进行中"
+  completed: "已完成"
+  blocked: "阻塞"
+  cancelled: "已取消"
+
+# 优先级定义
+priority_definitions:
+  高: "必须在当前迭代完成"
+  中: "应该在当前迭代完成"
+  低: "可以推迟到下个迭代"
+
+# 工作量估算标准
+story_points_guide:
+  1: "很简单的任务，1-2小时"
+  3: "简单任务，半天"
+  5: "中等任务，1天"
+  8: "复杂任务，2-3天"
+  13: "很复杂任务，1周"
+  21: "超复杂任务，需要分解"
+
+# 迭代计划
+iterations:
+  sprint_1:
+    duration: "2周"
+    goal: "完成Epic 1和Epic 2的基础设施搭建"
+    stories: ["US-001", "US-002", "US-003", "US-004", "US-005", "US-006"]
+    capacity: 50
+  
+  sprint_2:
+    duration: "2周"
+    goal: "完成核心元类CRUD服务实现"
+    stories: ["US-007", "US-008", "US-009", "US-010", "US-011"]
+    capacity: 50
+  
+  sprint_3:
+    duration: "2周"
+    goal: "完成剩余元类服务和GraphQL API"
+    stories: ["US-012", "US-013", "US-014", "US-015", "US-016", "US-017"]
+    capacity: 50
+
+# 风险和依赖管理
+risks:
+  - id: "RISK-001"
+    description: "官方sysml-v2-pilot库版本兼容性问题"
+    probability: "中"
+    impact: "高"
+    mitigation: "提前进行兼容性测试，准备备用方案"
+  
+  - id: "RISK-002"
+    description: "PostgreSQL JSONB性能不足"
+    probability: "低"
+    impact: "高"
+    mitigation: "进行性能测试，优化索引策略"
+
+dependencies:
+  - from: "US-002"
+    to: "US-001"
+    type: "前置依赖"
+    description: "元模型加载器依赖于官方库集成"
+  
+  - from: "US-006"
+    to: "US-005"
+    type: "前置依赖"
+    description: "持久化框架依赖于数据模型设计"

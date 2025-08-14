@@ -1,0 +1,67 @@
+"""
+Requirements domain minimal contract for P1
+"""
+
+interface Node { id: ID! }
+
+type RequirementDefinition implements Node {
+  id: ID!
+  reqId: String!
+  name: String!
+  text: String
+  parent: RequirementDefinition
+  children: [RequirementDefinition!]!
+}
+
+type RequirementsPage {
+  items: [RequirementDefinition!]!
+  total: Int!
+  page: Int!
+  size: Int!
+}
+
+interface MutationPayload { ok: Boolean!, error: String }
+
+type CreateRequirementPayload implements MutationPayload {
+  ok: Boolean!
+  error: String
+  requirement: RequirementDefinition
+}
+
+type UpdateRequirementPayload implements MutationPayload {
+  ok: Boolean!
+  error: String
+  requirement: RequirementDefinition
+}
+
+type DeletePayload implements MutationPayload {
+  ok: Boolean!
+  error: String
+  deletedId: ID
+}
+
+extend type Query {
+  requirement(id: ID!): RequirementDefinition
+  requirements(page: Int = 1, size: Int = 20): RequirementsPage!
+}
+
+input CreateRequirementInput {
+  reqId: String!
+  name: String!
+  text: String
+  parentId: ID
+}
+
+input UpdateRequirementInput {
+  name: String
+  text: String
+}
+
+extend type Mutation {
+  createRequirement(input: CreateRequirementInput!): CreateRequirementPayload!
+  updateRequirement(id: ID!, input: UpdateRequirementInput!): UpdateRequirementPayload!
+  deleteRequirement(id: ID!): DeletePayload!
+}
+
+
+

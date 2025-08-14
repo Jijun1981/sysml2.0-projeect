@@ -1,0 +1,18 @@
+scalar JSON
+
+type HealthStatus {
+  status: String!
+  components: JSON!
+}
+
+type Query {
+  ok: Boolean!
+  health: HealthStatus!
+}
+
+type Mutation {
+  # placeholder to allow extensions from domain modules
+  _noop: Boolean
+}
+
+

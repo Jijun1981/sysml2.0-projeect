@@ -1,0 +1,98 @@
+更新编号: 14
+
+模式: 执行者
+
+背景和动机
+- 用户需求：阅读 `opensource/` 下所有代码与资料，形成对 SysML v2 生态当前现状的整体理解，并在 `opensource/` 目录内输出一份统一的总结文档，便于后续团队成员快速上手与决策参考。
+- 预期价值：用一份高质量的总览覆盖“规范状态、主要开源组件、能力边界、集成关系、已知限制与建议”，降低理解与落地门槛。
+
+关键挑战和分析
+- 代码体量大、项目众多（API 服务、Java Client、Cookbook、Pilot Implementation/Eclipse 插件、Release 仓库等），需要抓住“角色—能力—现状—边界—建议”的主线。
+- 规范与实现迭代快，需要以“Release 仓库”对规范状态进行权威背书，同时从 API-Services 与 Pilot 代码中验证落地能力与空白点。
+- 文档需要既可读又可执行（包含如何起步与风险提示）。
+
+顶层任务拆分
+1) 清点 `opensource/` 子仓库结构与关键文件
+   - 成功标准：列出每个子仓库的角色、关键模块/文件类型。
+2) 研读 README、OpenAPI 定义与路由/控制器，理解功能边界
+   - 成功标准：覆盖 Project/Branch/Tag/Commit/Element/Relationship/Query 等核心接口族及关键实现点。
+3) 产出统一总结文档 `opensource/SysMLv2-OpenSource-Summary.md`
+   - 成功标准：包含“生态总览、组件摘要、能力与限制、使用建议、风险与后续建议”，结构清晰可导航。
+4) 形成研究记录 `.cursor/docs/`
+   - 成功标准：至少 1 份“规范状态”记录与 1 份“API 表面/能力”记录，包含引用来源。
+5) 用户审阅并迭代
+   - 成功标准：根据反馈补充或修订，总结被采纳使用。
+6) 架构要点提炼（Architecture / Roadmap 对齐）
+
+—— 新增：基础设施（CDO + PostgreSQL）最小闭环计划 ——
+- T-INFRA-01 数据源统一为PostgreSQL（dev/prod），移除H2与相关配置
+  - 成功标准：`DataSourceConfig`在dev/prod均返回`PGSimpleDataSource`；`application.yml`/`application-prod.yml`仅保留PG；CI通过Testcontainers起PostgreSQL
+- T-INFRA-02 CDO 使用PostgreSQL存储（单库、无分支），避免重复创建Repository
+  - 成功标准：仅通过`CDOServerManager`初始化Repository；`/actuator/health/cdo`为`UP`
+- T-INFRA-03 可配置的首启行为
+  - 成功标准：新增`cdo.store.drop-on-activate`配置（默认false），不破坏已有数据
+- T-INFRA-04 健康检查端点直达
+  - 成功标准：`GET /health/cdo`返回`{"status":"UP"}`（聚合自`CdoHealthIndicator`）
+- T-INFRA-05 基础验证
+  - 成功标准：`./gradlew :server:build`通过；PostgreSQL连通性IT在无DB时自动跳过
+
+项目状态看板
+- [x] T1 清点结构
+- [x] T2 阅读与能力边界梳理
+- [x] T3 生成统一总结文档
+- [x] T4 研究记录落档（含引用）
+- [ ] T5 等待用户审阅与迭代
+- [x] T6 架构要点提炼（Architecture）
+- [x] T7 路线图里程碑映射（Roadmap）
+- [x] T8 生成理解型笔记
+- [ ] T9 等待审阅与澄清
+- [x] T10 架构文档重构（抽离实现代码，聚焦架构/技术栈/数据流）
+- [x] T11 构建 SysML v2 领域模型（需求/Part/端口/连接/约束/追溯等）
+- [ ] T12 设计一个简化而不失复杂度的案例（驱动后续需求）
+- [ ] T13 从案例反推业务层能力与接口清单（GraphQL/服务契约）
+- [ ] T14 用户审阅确认后，再落实文档与接口细化
+- [x] T15 Roadmap 升版：现状评估与差异清单
+- [x] T16 Roadmap v2 大纲与原则（纯路线图、阶段化、DoD、指标）
+- [x] T17 与架构对齐（P1–P4 对齐、交付物与验收）
+- [x] T18 文档编辑与产出 `Lean-CDO-Roadmap.v2.md`
+- [ ] T19 用户审阅与定稿
+- [ ] T20 依赖清单与安装/验证脚本
+- [ ] T21 本机环境自检通过
+
+— INFRA（CDO + PostgreSQL） —
+- [x] T-INFRA-01 统一DataSource到PostgreSQL（文档与需求已更新，代码待全面对齐）
+- [x] T-INFRA-02 CDO使用PostgreSQL并避免重复装配
+- [x] T-INFRA-03 支持cdo.store.drop-on-activate配置（默认false）
+- [x] T-INFRA-04 新增/health/cdo端点
+- [ ] T-INFRA-05 构建与基础验证
+
+阶段计划（按最小闭环推进）
+- P1 仅需求（先行验证）：
+  - [ ] T12-P1 案例（需求层）：UAV 需求树、验收指标与度量方式
+  - [ ] T13-P1 业务契约（需求域）：CRUD、层次（derivedFrom）、查询过滤、校验与错误语义
+- P2 结构与参数：Part/Port/Connection 建模与关键参数
+- P3 约束与追溯：计算派生值、校验、Satisfies/Allocation 最小矩阵
+- P4 订阅与报表：模型变更事件、最小覆盖率/验证报表
+
+当前状态/进度跟踪
+- 已完成：T1–T4、T6–T8、T10、T11、T15–T18。
+- 新提交：`Lean-CDO-Roadmap.v2.md`（纯路线图）、`docs/DEV-SETUP.md`（开发上手）、`ci/*.ps1`（占位脚本）、`tests/**`（占位用例）。
+- 新增：`docs/REQUIREMENTS.yaml`、`ci/install-deps.ps1`、`ci/verify-env.ps1`。
+- 待办：T5、T9、T12、T13、T14、T19、T21。
+ - 新进展：完成 `.gitignore` 扩充（忽略CDO JAR、bin、data等大文件/生成物），执行初始提交并准备推送 `origin/main`。
+
+近期执行（CDO + PostgreSQL）：
+- 已编辑：`DataSourceConfig`（将回退到仅PG实现）、`CDOServerManager`（支持drop-on-activate）、`application.yml`（新增cdo.store配置）、`HealthController`（新增/health/cdo）。
+- 已禁用：遗留`CDOConfig`通过Profile标记，避免与`CDOServerManager`重复创建Repository。
+- 下一步：移除H2与H2方言；启用Testcontainers PostgreSQL（dev/test）；修复因JSONB导致的建表/查询；跑通健康与连通性用例。
+ - 新增：仓库层面完成初始提交，准备推送远端 `origin/main`。
+
+执行者反馈/请求帮助
+- 如需我先落地 GraphQL 初版 Schema/Resolver 的“最小可用路径”，请确认优先顺序（需求/结构/追溯中选 3–5 条关键操作）。此外，可选案例领域建议：无人机（航电/能源/通信）、航天器（更贴近 Cookbook）、电动两轮车（BMS/驱动/人机）。
+
+经验教训
+- JSON-LD 路径存在未实现分支，文档需明确标注，避免误用；
+- 以 OpenAPI 作为契约源有助于 SDK 一致性与回归测试。
+ - dev环境若JPA使用PostgreSQL特性（如JSONB），不应再混用H2；CDO与JPA共享DataSource时需统一到PostgreSQL或拆分多数据源。
+
+

@@ -1,0 +1,480 @@
+# Implementation Scaffold - 代码结构与关键文件映射
+# 与agile_traceability_matrix_v4_adjusted.yaml配套使用
+
+metadata:
+  version: "v1.0"
+  alignment: "agile_traceability_matrix_v4_adjusted.yaml"
+  purpose: "提供实现骨架和文件模板，映射到需求ID"
+
+directory_structure: |
+  .
+  ├── server/                          # Spring Boot后端
+  │   ├── build.gradle
+  │   ├── src/main/java/com/acme/sysml/
+  │   │   ├── Application.java
+  │   │   ├── config/
+  │   │   │   ├── GraphQLConfig.java
+  │   │   │   ├── CDOConfig.java
+  │   │   │   └── SecurityConfig.java
+  │   │   ├── api/
+  │   │   │   ├── graphql/
+  │   │   │   │   ├── scalars/
+  │   │   │   │   ├── dataloader/
+  │   │   │   │   └── error/
+  │   │   │   └── rest/
+  │   │   │       └── HealthController.java
+  │   │   ├── usecase/              # 应用服务层
+  │   │   │   ├── requirement/
+  │   │   │   ├── structure/
+  │   │   │   ├── constraint/
+  │   │   │   └── traceability/
+  │   │   ├── domain/                # 领域层
+  │   │   │   ├── validation/
+  │   │   │   ├── calculation/
+  │   │   │   └── model/
+  │   │   ├── repository/            # 仓储层
+  │   │   │   ├── CDORepository.java
+  │   │   │   └── impl/
+  │   │   └── infrastructure/        # 基础设施
+  │   │       ├── emf/
+  │   │       ├── transaction/
+  │   │       └── event/
+  │   ├── src/main/resources/
+  │   │   ├── application.yml
+  │   │   ├── application-dev.yml
+  │   │   ├── application-prod.yml
+  │   │   └── graphql/
+  │   │       ├── schema.graphqls
+  │   │       └── modules/
+  │   └── src/test/
+  │       ├── java/
+  │       ├── resources/
+  │       └── fixtures/
+  │
+  ├── sirius-web/                      # Sirius Web前端配置
+  │   ├── modelers/
+  │   │   ├── requirements.modeler.json
+  │   │   ├── structure.modeler.json
+  │   │   └── common.modeler.json
+  │   └── representations/
+  │       ├── trees/
+  │       ├── tables/
+  │       ├── diagrams/
+  │       └── forms/
+  │
+  ├── scripts/                         # 运维脚本
+  │   ├── dev/
+  │   │   ├── start.sh
+  │   │   ├── stop.sh
+  │   │   └── reset.sh
+  │   ├── migration/
+  │   │   └── import-library.sh
+  │   └── test/
+  │       ├── load-test.sh
+  │       └── e2e-test.sh
+  │
+  ├── ci/                             # CI/CD配置
+  │   ├── .github/
+  │   │   └── workflows/
+  │   │       ├── build.yml
+  │   │       ├── test.yml
+  │   │       └── deploy.yml
+  │   └── docker/
+  │       ├── Dockerfile
+  │       └── docker-compose.yml
+  │
+  └── docs/                           # 文档
+      ├── api/
+      ├── deployment/
+      └── development/
+
+key_files:
+  # ===== Foundation Phase Files =====
+  
+  - path: server/src/main/java/com/acme/sysml/config/CDOConfig.java
+    maps_to: [RQ-INFRA-CDO-001]
+    template: |
+      @Configuration
+      public class CDOConfig {
+        @Value("${cdo.repository.name:sysml}")
+        private String repositoryName;
+        
+        @Bean
+        public CDORepository createRepository() {
+          // Lean CDO: 单Repository，无分支/审计/锁
+          IRepository repository = CDOServerUtil.createRepository(
+            repositoryName,
+            createStore(),
+            new HashMap<>() // 精简配置
+          );
+          return new CDORepositoryWrapper(repository);
+        }
+        
+        private IStore createStore() {
+          return profile.equals("dev") 
+            ? JDBCUtil.createStore("org.h2.Driver", "jdbc:h2:./data/sysml")
+            : JDBCUtil.createStore("org.postgresql.Driver", dbUrl);
+        }
+      }
+  
+  - path: server/src/main/java/com/acme/sysml/infrastructure/emf/EMFModelManager.java
+    maps_to: [RQ-INFRA-EMF-003, RQ-M2-REG-001]
+    template: |
+      @Component
+      public class EMFModelManager {
+        @PostConstruct
+        public void registerPackages() {
+          // 注册KerML和SysML包
+          EPackage.Registry.INSTANCE.put(
+            KerMLPackage.eNS_URI, 
+            KerMLPackage.eINSTANCE
+          );
+          EPackage.Registry.INSTANCE.put(
+            SysMLPackage.eNS_URI, 
+            SysMLPackage.eINSTANCE
+          );
+        }
+        
+        public <T extends EObject> T create(Class<T> type) {
+          return SysMLFactory.eINSTANCE.create(
+            getEClass(type)
+          );
+        }
+      }
+  
+  - path: server/src/main/java/com/acme/sysml/api/graphql/GraphQLConfig.java
+    maps_to: [RQ-API-ENDPOINT-001]
+    template: |
+      @Configuration
+      public class GraphQLConfig {
+        @Bean
+        public GraphQL graphQL(GraphQLSchema schema) {
+          return GraphQL.newGraphQL(schema)
+            .defaultDataFetcherExceptionHandler(errorHandler())
+            .build();
+        }
+        
+        @Bean
+        public GraphQLSchema schema(TypeDefinitionRegistry registry,
+                                   RuntimeWiring wiring) {
+          return new SchemaGenerator().makeExecutableSchema(
+            registry, wiring
+          );
+        }
+      }
+  
+  - path: server/src/main/java/com/acme/sysml/api/graphql/scalars/CustomScalars.java
+    maps_to: [RQ-API-SCALAR-002]
+    template: |
+      public class CustomScalars {
+        public static final GraphQLScalarType DateTime = 
+          GraphQLScalarType.newScalar()
+            .name("DateTime")
+            .coercing(new DateTimeCoercing())
+            .build();
+        
+        public static final GraphQLScalarType JSON = 
+          ExtendedScalars.Json;
+      }
+  
+  - path: server/src/main/java/com/acme/sysml/api/graphql/dataloader/DataLoaderRegistry.java
+    maps_to: [RQ-API-DATALOADER-005]
+    template: |
+      @Component
+      public class DataLoaderRegistryFactory {
+        @Bean
+        @RequestScope
+        public DataLoaderRegistry dataLoaderRegistry() {
+          DataLoaderRegistry registry = new DataLoaderRegistry();
+          
+          registry.register("requirementDefinitions",
+            DataLoaderFactory.newDataLoader(
+              requirementBatchLoader(),
+              DataLoaderOptions.newOptions()
+                .setBatchingEnabled(true)
+                .setMaxBatchSize(50)
+            )
+          );
+          
+          return registry;
+        }
+      }
+  
+  # ===== P1 Phase - Requirements Files =====
+  
+  - path: server/src/main/java/com/acme/sysml/usecase/requirement/RequirementUseCase.java
+    maps_to: [RQ-REQ-CRUD-001, RQ-REQ-HIERARCHY-003]
+    template: |
+      @Service
+      @Transactional
+      public class RequirementUseCase {
+        private final CDORepository repository;
+        private final RequirementValidator validator;
+        private final EventPublisher eventPublisher;
+        
+        public RequirementDefinition create(CreateRequirementInput input) {
+          // 验证
+          validator.validateUniqueness(input.getReqId());
+          validator.validateRequiredFields(input);
+          
+          // 创建
+          RequirementDefinition req = SysMLFactory.eINSTANCE
+            .createRequirementDefinition();
+          req.setName(input.getName());
+          req.setReqId(input.getReqId());
+          
+          // 保存
+          CDOTransaction tx = repository.openTransaction();
+          tx.getOrCreateResource("/requirements").getContents().add(req);
+          tx.commit();
+          
+          // 发布事件
+          eventPublisher.publish(new ModelChangedEvent(req, ChangeType.CREATE));
+          
+          return req;
+        }
+        
+        public void setParent(String childId, String parentId) {
+          // 环检测
+          if (validator.wouldCreateCycle(childId, parentId)) {
+            throw new BusinessException("REQ_CYCLE_DETECTED");
+          }
+          // ... 设置父子关系
+        }
+      }
+  
+  - path: server/src/main/java/com/acme/sysml/domain/validation/RequirementValidator.java
+    maps_to: [RQ-REQ-HIERARCHY-003]
+    template: |
+      @Component
+      public class RequirementValidator {
+        public boolean wouldCreateCycle(String childId, String parentId) {
+          // 使用DFS检测环
+          Set<String> visited = new HashSet<>();
+          return hasCycleDFS(parentId, childId, visited);
+        }
+        
+        private boolean hasCycleDFS(String current, String target, 
+                                   Set<String> visited) {
+          if (current.equals(target)) return true;
+          if (visited.contains(current)) return false;
+          
+          visited.add(current);
+          for (String parent : getParents(current)) {
+            if (hasCycleDFS(parent, target, visited)) {
+              return true;
+            }
+          }
+          return false;
+        }
+      }
+  
+  - path: server/src/main/resources/graphql/modules/requirements.graphqls
+    maps_to: [RQ-REQ-CRUD-001, RQ-REQ-QUERY-004]
+    template: |
+      type RequirementDefinition {
+        id: ID!
+        reqId: String!
+        name: String!
+        text: String
+        parent: RequirementDefinition
+        children: [RequirementDefinition!]!
+        createdAt: DateTime!
+        updatedAt: DateTime!
+        createdBy: String
+        updatedBy: String
+      }
+      
+      input CreateRequirementInput {
+        reqId: String!
+        name: String!
+        text: String
+        parentId: ID
+      }
+      
+      type RequirementPage {
+        items: [RequirementDefinition!]!
+        pageInfo: PageInfo!
+      }
+      
+      extend type Query {
+        requirement(id: ID!): RequirementDefinition
+        requirements(
+          page: Int = 1
+          size: Int = 20
+          filter: RequirementFilter
+          sort: RequirementSort
+        ): RequirementPage!
+      }
+      
+      extend type Mutation {
+        createRequirement(input: CreateRequirementInput!): RequirementDefinition!
+        updateRequirement(id: ID!, input: UpdateRequirementInput!): RequirementDefinition!
+        deleteRequirement(id: ID!): Boolean!
+      }
+  
+  # ===== P2 Phase - Structure Files =====
+  
+  - path: server/src/main/java/com/acme/sysml/usecase/structure/StructureUseCase.java
+    maps_to: [RQ-STRUCT-PART-001, RQ-STRUCT-CONN-003]
+    template: |
+      @Service
+      @Transactional
+      public class StructureUseCase {
+        public Connection createConnection(String sourcePortId, 
+                                         String targetPortId) {
+          Port source = repository.findPort(sourcePortId);
+          Port target = repository.findPort(targetPortId);
+          
+          // 校验连接合法性
+          if (!validator.isValidConnection(source, target)) {
+            throw new BusinessException("CONNECTION_INVALID", 
+              String.format("Cannot connect %s to %s", 
+                source.getDirection(), target.getDirection()));
+          }
+          
+          Connection conn = SysMLFactory.eINSTANCE.createConnection();
+          conn.setSource(source);
+          conn.setTarget(target);
+          
+          repository.save(conn);
+          return conn;
+        }
+      }
+  
+  - path: server/src/main/java/com/acme/sysml/domain/validation/ConnectionValidator.java
+    maps_to: [RQ-STRUCT-CONN-003]
+    template: |
+      @Component
+      public class ConnectionValidator {
+        public boolean isValidConnection(Port source, Port target) {
+          // 方向规则：out -> in
+          if (source.getDirection() != Direction.OUT || 
+              target.getDirection() != Direction.IN) {
+            return false;
+          }
+          
+          // 类型规则：相同类型才能连接
+          if (!source.getType().equals(target.getType())) {
+            return false;
+          }
+          
+          return true;
+        }
+      }
+  
+  # ===== Test Files =====
+  
+  - path: server/src/test/java/com/acme/sysml/integration/RequirementIT.java
+    maps_to: [RQ-REQ-CRUD-001, RQ-REQ-QUERY-004]
+    template: |
+      @SpringBootTest
+      @AutoConfigureMockMvc
+      class RequirementIT {
+        @Autowired
+        private GraphQlTester graphQlTester;
+        
+        @Test
+        void shouldCreateRequirement() {
+          graphQlTester.document("""
+            mutation {
+              createRequirement(input: {
+                reqId: "REQ-001"
+                name: "System shall..."
+                text: "Description"
+              }) {
+                id
+                reqId
+                name
+              }
+            }
+          """)
+          .execute()
+          .path("createRequirement.reqId").entity(String.class).isEqualTo("REQ-001");
+        }
+        
+        @Test
+        void shouldDetectCycle() {
+          // 创建A->B->C，然后尝试C->A形成环
+          // 应该返回REQ_CYCLE_DETECTED错误
+        }
+      }
+  
+  - path: server/src/test/java/com/acme/sysml/performance/QueryPerformanceTest.java
+    maps_to: [RQ-REQ-QUERY-004]
+    template: |
+      class QueryPerformanceTest {
+        @Test
+        void mediumDatasetP50Under200ms() {
+          // 准备1000条数据
+          loadTestData(1000);
+          
+          List<Long> latencies = new ArrayList<>();
+          for (int i = 0; i < 100; i++) {
+            long start = System.currentTimeMillis();
+            queryRequirements(20, 1); // page size 20
+            latencies.add(System.currentTimeMillis() - start);
+          }
+          
+          long p50 = percentile(latencies, 50);
+          assertThat(p50).isLessThan(200);
+        }
+      }
+  
+  # ===== CI/CD Files =====
+  
+  - path: .github/workflows/build.yml
+    maps_to: [RQ-TEST-CI-001]
+    template: |
+      name: Build and Test
+      on: [push, pull_request]
+      
+      jobs:
+        test:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v3
+            - uses: actions/setup-java@v3
+              with:
+                java-version: '17'
+                
+            - name: Run tests
+              run: ./gradlew test
+              
+            - name: Check coverage
+              run: ./gradlew jacocoTestReport
+              
+            - name: Verify coverage threshold
+              run: |
+                coverage=$(grep -oP 'Total.*?(\d+)%' build/reports/jacoco/test/html/index.html | grep -oP '\d+')
+                if [ "$coverage" -lt 80 ]; then
+                  echo "Coverage $coverage% is below 80%"
+                  exit 1
+                fi
+  
+  - path: docker/docker-compose.yml
+    maps_to: [RQ-INFRA-CDO-001]
+    template: |
+      version: '3.8'
+      services:
+        postgres:
+          image: postgres:15
+          environment:
+            POSTGRES_DB: sysml
+            POSTGRES_USER: sysml
+            POSTGRES_PASSWORD: sysml
+          volumes:
+            - postgres_data:/var/lib/postgresql/data
+        
+        app:
+          build: .
+          ports:
+            - "8080:8080"
+          environment:
+            SPRING_PROFILES_ACTIVE: prod
+            DB_URL: jdbc:postgresql://postgres:5432/sysml
+          depends_on:
+            - postgres
+      
+      volumes:
+        postgres_data:

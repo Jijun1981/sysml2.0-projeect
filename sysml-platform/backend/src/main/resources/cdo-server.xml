@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cdoServer>
+  <acceptor type="tcp" listenAddr="0.0.0.0" port="2036"/>
+  <repository name="sysml">
+    <property name="supportingAudits" value="false"/>
+    <property name="supportingBranches" value="false"/>
+    <property name="ensureReferentialIntegrity" value="false"/>
+    <store type="db">
+      <!-- 映射策略：水平表策略 -->
+      <mappingStrategy type="horizontal"/>
+      <!-- 关键：选择 PostgreSQL 适配器 -->
+      <dbAdapter name="postgresql"/>
+      <!-- 用 JDBC DataSource -->
+      <dataSource class="org.postgresql.ds.PGSimpleDataSource"
+                  url="jdbc:postgresql://localhost:5432/sysml_dev_db"
+                  databaseName="sysml_dev_db"
+                  user="postgres"
+                  password="123456"/>
+    </store>
+  </repository>
+</cdoServer>

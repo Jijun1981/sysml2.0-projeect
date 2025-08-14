@@ -1,0 +1,30 @@
+# 测试配置 - 无数据库模式
+spring:
+  # 排除所有数据库自动配置
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.graphql.data.GraphQlQueryByExampleAutoConfiguration
+      - org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration
+  
+  # 禁用JPA
+  jpa:
+    enabled: false
+  
+# 明确禁用CDO
+cdo:
+  enabled: false
+  
+# 功能开关
+features:
+  requirements: false
+  graphql:
+    schemaSnapshot: false
+  
+# 测试环境日志
+logging:
+  level:
+    com.sysml: DEBUG
+    org.springframework.boot.autoconfigure: DEBUG
