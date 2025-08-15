@@ -1,5 +1,8 @@
 # 开发环境配置
 spring:
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
   datasource:
     url: jdbc:postgresql://localhost:5432/sysml_dev_db
     username: sysml_user
@@ -17,6 +20,19 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+
+# 关闭有问题的OpenAPI自动配置
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
         
 # CDO配置
 cdo:

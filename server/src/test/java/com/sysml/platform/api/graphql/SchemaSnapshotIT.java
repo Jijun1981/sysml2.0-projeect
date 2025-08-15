@@ -23,4 +23,3 @@ class SchemaSnapshotIT {
     assertThat(Files.exists(out)).isTrue();
   }
 }
-

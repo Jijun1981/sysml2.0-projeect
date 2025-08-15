@@ -9,4 +9,3 @@ public class CreateRequirementInput {
   private String text;
   private String parentId;
 }
-

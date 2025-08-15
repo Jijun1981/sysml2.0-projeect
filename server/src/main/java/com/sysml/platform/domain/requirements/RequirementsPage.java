@@ -26,4 +26,3 @@ public class RequirementsPage {
     private boolean hasPrevious;
   }
 }
-

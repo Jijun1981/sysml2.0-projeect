@@ -38,4 +38,3 @@ class GraphQLApiIT {
     assertThat(resp.getBody()).contains("cdo").contains("sirius").contains("database");
   }
 }
-

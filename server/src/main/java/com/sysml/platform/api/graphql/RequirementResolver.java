@@ -1,93 +1,122 @@
 package com.sysml.platform.api.graphql;
 
-import com.sysml.platform.api.graphql.payload.*;
-import com.sysml.platform.domain.requirements.*;
+import com.sysml.platform.domain.requirements.InMemoryRequirementService;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.emf.ecore.EObject;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
-/** Requirements域的GraphQL Resolver 实现查询和变更操作 */
+/** GraphQL Resolver for Requirements 实现 P1 需求域的 GraphQL API 使用 EMF 动态模型，不依赖外部 JAR */
 @Controller
 @RequiredArgsConstructor
 @Slf4j
-@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(value = "features.requirements", havingValue = "true", matchIfMissing = true)
 public class RequirementResolver {
 
-  private final RequirementService requirementService;
+  private final InMemoryRequirementService requirementService;
 
-  // ========== 查询操作 ==========
+  // ========== Queries ==========
 
+  /** 查询所有需求 */
   @QueryMapping
-  public RequirementDefinition requirement(@Argument String id) {
-    log.debug("Query requirement by id: {}", id);
-    return requirementService.findById(id).orElse(null);
+  public List<Map<String, Object>> requirements() {
+    log.debug("Querying all requirements");
+
+    return requirementService.findAllRequirements().stream()
+        .map(this::toGraphQLMap)
+        .collect(Collectors.toList());
   }
 
+  /** 根据 reqId 查询需求 */
   @QueryMapping
-  public RequirementsPage requirements(@Argument Integer page, @Argument Integer size) {
-    int pageNum = page != null ? page : 1;
-    int pageSize = size != null ? size : 20;
-    log.debug("Query requirements page: {}, size: {}", pageNum, pageSize);
-    return requirementService.findAll(pageNum, pageSize);
+  public Map<String, Object> requirement(@Argument String reqId) {
+    log.debug("Querying requirement by reqId: {}", reqId);
+
+    return requirementService.findByReqId(reqId).map(this::toGraphQLMap).orElse(null);
   }
 
-  // ========== 变更操作 ==========
+  // ========== Mutations ==========
 
+  /** 创建需求定义 */
   @MutationMapping
-  public CreateRequirementPayload createRequirement(@Argument CreateRequirementInput input) {
-    log.info("Creating requirement with reqId: {}", input.getReqId());
-    try {
-      RequirementDefinition requirement = requirementService.createRequirement(input);
-      return CreateRequirementPayload.builder().ok(true).requirement(requirement).build();
-    } catch (Exception e) {
-      log.error("Failed to create requirement", e);
-      return CreateRequirementPayload.builder().ok(false).error(buildError(e)).build();
-    }
+  public Map<String, Object> createRequirement(@Argument Map<String, String> input) {
+    String reqId = input.get("reqId");
+    String name = input.get("name");
+    String text = input.get("text");
+
+    log.info("Creating requirement: {}", reqId);
+
+    EObject req = requirementService.createRequirementDefinition(reqId, name, text);
+
+    return toGraphQLMap(req);
   }
 
+  /** 添加 derive 关系 */
   @MutationMapping
-  public UpdateRequirementPayload updateRequirement(
-      @Argument String id, @Argument UpdateRequirementInput input) {
-    log.info("Updating requirement: {}", id);
-    try {
-      RequirementDefinition requirement = requirementService.updateRequirement(id, input);
-      return UpdateRequirementPayload.builder().ok(true).requirement(requirement).build();
-    } catch (Exception e) {
-      log.error("Failed to update requirement", e);
-      return UpdateRequirementPayload.builder().ok(false).error(buildError(e)).build();
-    }
+  public Map<String, Object> addDeriveRelationship(
+      @Argument String childId, @Argument String parentId) {
+    log.info("Adding derive relationship: {} -> {}", childId, parentId);
+
+    var child =
+        requirementService
+            .findByReqId(childId)
+            .orElseThrow(() -> new RuntimeException("Child requirement not found: " + childId));
+    var parent =
+        requirementService
+            .findByReqId(parentId)
+            .orElseThrow(() -> new RuntimeException("Parent requirement not found: " + parentId));
+
+    requirementService.addDeriveRelationship(child, parent);
+
+    Map<String, Object> result = new HashMap<>();
+    result.put("success", true);
+    result.put("message", String.format("%s now derives from %s", childId, parentId));
+    return result;
   }
 
+  /** 添加 refine 关系（暂时使用 derive 实现） */
   @MutationMapping
-  public DeletePayload deleteRequirement(@Argument String id) {
-    log.info("Deleting requirement: {}", id);
-    try {
-      boolean deleted = requirementService.deleteRequirement(id);
-      return DeletePayload.builder().ok(deleted).deletedId(deleted ? id : null).build();
-    } catch (Exception e) {
-      log.error("Failed to delete requirement", e);
-      return DeletePayload.builder().ok(false).error(buildError(e)).build();
-    }
+  public Map<String, Object> addRefineRelationship(
+      @Argument String refiningId, @Argument String refinedId) {
+    log.info("Adding refine relationship: {} refines {}", refiningId, refinedId);
+
+    // TODO: 实现真正的 refine 关系
+    // 暂时使用 derive 关系代替
+    return addDeriveRelationship(refiningId, refinedId);
   }
 
-  /** 构建错误响应 */
-  private com.sysml.platform.api.graphql.payload.Error buildError(Exception e) {
-    String code = "INTERNAL_ERROR";
-    String messageKey = "error.internal";
+  // ========== Helper Methods ==========
 
-    if (e instanceof com.sysml.platform.common.exception.BusinessException) {
-      var be = (com.sysml.platform.common.exception.BusinessException) e;
-      code = be.getCode();
-      messageKey = be.getMessageKey();
+  /** 转换 EObject 为 GraphQL Map */
+  private Map<String, Object> toGraphQLMap(EObject req) {
+    Map<String, Object> map = new HashMap<>();
+
+    // 获取 elementId
+    var elementIdFeature = req.eClass().getEStructuralFeature("elementId");
+    if (elementIdFeature != null) {
+      Object elementId = req.eGet(elementIdFeature);
+      map.put("id", elementId != null ? elementId.toString() : req.hashCode());
+    } else {
+      map.put("id", String.valueOf(req.hashCode()));
     }
 
-    return com.sysml.platform.api.graphql.payload.Error.builder()
-        .code(code)
-        .messageKey(messageKey)
-        .details(e.getMessage())
-        .build();
+    map.put("reqId", requirementService.getReqId(req));
+    map.put("name", requirementService.getName(req));
+    map.put("text", requirementService.getText(req));
+
+    // 添加派生需求
+    List<String> derivedIds =
+        requirementService.getDerivedRequirements(req).stream()
+            .map(r -> requirementService.getReqId(r))
+            .collect(Collectors.toList());
+    map.put("derivedRequirements", derivedIds);
+
+    return map;
   }
 }

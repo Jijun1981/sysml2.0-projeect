@@ -1,0 +1,94 @@
+# Sirius Web GraphQL Schema
+# Extended to support SysML v2 Requirements Diagrams
+
+extend type Query {
+    viewer: Viewer!
+}
+
+extend type Mutation {
+    createRepresentation(input: CreateRepresentationInput!): CreateRepresentationPayload!
+}
+
+type Viewer {
+    editingContext(editingContextId: ID): EditingContext
+}
+
+type EditingContext {
+    id: ID!
+    representations(types: [String!]): [Representation!]!
+    representation(representationId: ID!): Representation
+}
+
+interface Representation {
+    id: ID!
+    label: String!
+    targetObjectId: ID!
+}
+
+type Diagram implements Representation {
+    id: ID!
+    label: String!
+    targetObjectId: ID!
+    nodes: [Node!]!
+    edges: [Edge!]!
+}
+
+type Node {
+    id: ID!
+    type: String!
+    targetObjectId: ID!
+    label: String!
+    style: NodeStyle!
+    position: Position!
+    size: Size!
+}
+
+type Edge {
+    id: ID!
+    type: String!
+    sourceId: ID!
+    targetId: ID!
+    label: String!
+    style: EdgeStyle!
+}
+
+type NodeStyle {
+    background: String!
+    borderColor: String!
+    borderSize: Int!
+    borderStyle: String!
+}
+
+type EdgeStyle {
+    color: String!
+    lineStyle: String!
+    sourceArrowStyle: String!
+    targetArrowStyle: String!
+}
+
+type Position {
+    x: Float!
+    y: Float!
+}
+
+type Size {
+    width: Float!
+    height: Float!
+}
+
+input CreateRepresentationInput {
+    editingContextId: ID!
+    representationDescriptionId: ID!
+    objectId: ID!
+    representationName: String!
+}
+
+union CreateRepresentationPayload = CreateRepresentationSuccessPayload | ErrorPayload
+
+type CreateRepresentationSuccessPayload {
+    representation: Representation!
+}
+
+type ErrorPayload {
+    message: String!
+}

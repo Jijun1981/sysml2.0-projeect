@@ -28,4 +28,3 @@ public class RequirementDefinition {
   private String createdBy;
   private String updatedBy;
 }
-

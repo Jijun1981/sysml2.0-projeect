@@ -1,10 +1,8 @@
 package com.sysml.platform.infrastructure.emf;
 
-import com.sysml.platform.infrastructure.cdo.CDORepository;
 import jakarta.annotation.PostConstruct;
 import java.io.*;
 import java.util.*;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.*;
@@ -17,171 +15,153 @@ import org.springframework.stereotype.Service;
 
 /** EMF模型管理器 - 实现完整的CRUD和往返验证 满足RQ-INFRA-EMF-003和RQ-M2-FACTORY-002需求 */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class EMFModelManager {
 
-  private final CDORepository cdoRepository;
   private ResourceSet resourceSet;
+  private Resource localResource;
+  private Map<String, EObject> objectCache = new HashMap<>();
 
   @PostConstruct
   public void initialize() {
     resourceSet = new ResourceSetImpl();
-    // 注册XMI资源工厂
     resourceSet
         .getResourceFactoryRegistry()
         .getExtensionToFactoryMap()
         .put("xmi", new XMIResourceFactoryImpl());
 
-    log.info("EMFModelManager initialized");
+    // 创建本地资源
+    localResource = resourceSet.createResource(URI.createURI("memory://local.xmi"));
+    log.info("EMF Model Manager initialized with local storage");
   }
 
-  /** 创建模型对象 (使用工厂) */
-  public EObject createObject(String nsUri, String className) {
-    log.debug("Creating object: {}:{}", nsUri, className);
-
-    // 获取EPackage
-    EPackage ePackage = EPackage.Registry.INSTANCE.getEPackage(nsUri);
-    if (ePackage == null) {
-      throw new IllegalArgumentException("EPackage not found: " + nsUri);
-    }
-
-    // 获取EClass
-    EClassifier eClassifier = ePackage.getEClassifier(className);
-    if (!(eClassifier instanceof EClass)) {
-      throw new IllegalArgumentException("EClass not found: " + className);
-    }
-
-    // 使用工厂创建实例
-    EFactory factory = ePackage.getEFactoryInstance();
-    EObject instance = factory.create((EClass) eClassifier);
-
-    log.info("Created {} instance", className);
-    return instance;
-  }
-
-  /** 保存对象到CDO */
-  public String saveObject(EObject object) {
-    var transaction = cdoRepository.openTransaction();
-    try {
-      transaction.addObject(object);
-      transaction.commit();
-
-      String id = EcoreUtil.getURI(object).toString();
-      log.info("Saved object with ID: {}", id);
-      return id;
-    } catch (Exception e) {
-      transaction.rollback();
-      throw new RuntimeException("Failed to save object", e);
-    } finally {
-      transaction.close();
-    }
-  }
-
-  /** 查询对象 */
-  public EObject findObject(String uri) {
-    URI emfUri = URI.createURI(uri);
-    Resource resource = resourceSet.getResource(emfUri, false);
-    if (resource != null && !resource.getContents().isEmpty()) {
-      return resource.getContents().get(0);
-    }
-    return null;
-  }
-
-  /** 更新对象属性 */
-  public void updateObject(EObject object, String featureName, Object value) {
-    EClass eClass = object.eClass();
-    EStructuralFeature feature = eClass.getEStructuralFeature(featureName);
-
-    if (feature == null) {
-      throw new IllegalArgumentException("Feature not found: " + featureName);
-    }
-
-    object.eSet(feature, value);
-    log.debug("Updated {}.{} = {}", eClass.getName(), featureName, value);
-  }
-
-  /** 删除对象 */
-  public boolean deleteObject(EObject object) {
-    EcoreUtil.delete(object, true);
-    log.info("Deleted object");
-    return true;
-  }
-
-  /** XMI序列化 */
-  public String toXMI(EObject object) throws IOException {
-    Resource resource = resourceSet.createResource(URI.createURI("temp.xmi"));
-    resource.getContents().add(object);
-
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    resource.save(outputStream, null);
-
-    String xmi = outputStream.toString("UTF-8");
-    resource.getContents().clear();
-    return xmi;
-  }
-
-  /** XMI反序列化 */
-  public EObject fromXMI(String xmi) throws IOException {
-    Resource resource = resourceSet.createResource(URI.createURI("temp.xmi"));
-
-    ByteArrayInputStream inputStream = new ByteArrayInputStream(xmi.getBytes("UTF-8"));
-    resource.load(inputStream, null);
-
-    if (resource.getContents().isEmpty()) {
-      throw new IOException("No object found in XMI");
-    }
-
-    EObject object = resource.getContents().get(0);
-    resource.getContents().clear();
+  /** 创建EObject实例 */
+  public EObject createObject(EClass eClass) {
+    EObject object = EcoreUtil.create(eClass);
+    log.debug("Created object of type: {}", eClass.getName());
     return object;
   }
 
-  /** JSON序列化 (简化版) */
-  public Map<String, Object> toJSON(EObject object) {
-    Map<String, Object> json = new HashMap<>();
-    EClass eClass = object.eClass();
+  /** 查找对象 */
+  public EObject findObject(String id) {
+    // 先查缓存
+    if (objectCache.containsKey(id)) {
+      return objectCache.get(id);
+    }
 
-    json.put("eClass", eClass.getName());
-    json.put("nsUri", eClass.getEPackage().getNsURI());
-
-    for (EAttribute attr : eClass.getEAllAttributes()) {
-      Object value = object.eGet(attr);
-      if (value != null) {
-        json.put(attr.getName(), value.toString());
+    // 查找本地资源
+    for (EObject obj : localResource.getContents()) {
+      String objId = EcoreUtil.getURI(obj).toString();
+      if (objId.equals(id)) {
+        objectCache.put(id, obj);
+        return obj;
       }
     }
 
-    return json;
+    return null;
   }
 
-  /** 往返验证 - XMI */
-  public boolean validateXMIRoundTrip(EObject original) {
+  /** 保存对象 */
+  public String saveObject(EObject object) {
+    // 本地模式 - 添加到ResourceSet
+    if (!localResource.getContents().contains(object)) {
+      localResource.getContents().add(object);
+    }
+    String id = EcoreUtil.getURI(object).toString();
+    objectCache.put(id, object);
+    log.info("Saved object locally with ID: {}", id);
+    return id;
+  }
+
+  /** 更新对象 */
+  public void updateObject(String id, Map<String, Object> updates) {
+    EObject object = findObject(id);
+    if (object == null) {
+      throw new IllegalArgumentException("Object not found: " + id);
+    }
+
+    for (Map.Entry<String, Object> entry : updates.entrySet()) {
+      EStructuralFeature feature = object.eClass().getEStructuralFeature(entry.getKey());
+      if (feature != null) {
+        object.eSet(feature, entry.getValue());
+        log.debug("Updated feature {} = {}", entry.getKey(), entry.getValue());
+      }
+    }
+  }
+
+  /** 删除对象 */
+  public void deleteObject(String id) {
+    EObject object = findObject(id);
+    if (object != null) {
+      EcoreUtil.delete(object);
+      objectCache.remove(id);
+      log.info("Deleted object: {}", id);
+    }
+  }
+
+  /** 序列化到XMI */
+  public String serializeToXMI(EObject object) throws IOException {
+    Resource tempResource = resourceSet.createResource(URI.createURI("temp://serialize.xmi"));
+    tempResource.getContents().add(EcoreUtil.copy(object));
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    tempResource.save(baos, null);
+    String xmi = baos.toString("UTF-8");
+
+    resourceSet.getResources().remove(tempResource);
+    return xmi;
+  }
+
+  /** 从XMI反序列化 */
+  public EObject deserializeFromXMI(String xmi) throws IOException {
+    Resource tempResource = resourceSet.createResource(URI.createURI("temp://deserialize.xmi"));
+    ByteArrayInputStream bais = new ByteArrayInputStream(xmi.getBytes("UTF-8"));
+    tempResource.load(bais, null);
+
+    if (!tempResource.getContents().isEmpty()) {
+      EObject object = tempResource.getContents().get(0);
+      resourceSet.getResources().remove(tempResource);
+      return object;
+    }
+
+    return null;
+  }
+
+  /** XMI往返验证 - 满足RQ-M2-ROUNDTRIP-003 */
+  public boolean validateRoundTrip(EObject original) {
     try {
-      // 序列化
-      String xmi = toXMI(original);
+      // 序列化到XMI
+      String xmi = serializeToXMI(original);
+      log.debug("Serialized to XMI: {} bytes", xmi.length());
 
       // 反序列化
-      EObject restored = fromXMI(xmi);
+      EObject restored = deserializeFromXMI(xmi);
 
-      // 比较
-      boolean equal = EcoreUtil.equals(original, restored);
-      log.info("XMI round-trip validation: {}", equal ? "PASSED" : "FAILED");
+      // 深度比较
+      boolean isEqual = EcoreUtil.equals(original, restored);
+      log.info("Round-trip validation result: {}", isEqual ? "PASSED" : "FAILED");
 
-      return equal;
+      return isEqual;
     } catch (Exception e) {
-      log.error("XMI round-trip validation failed", e);
+      log.error("Round-trip validation failed", e);
       return false;
     }
   }
 
-  /** 批量创建测试 */
-  public List<EObject> createMultipleObjects(String nsUri, String className, int count) {
-    List<EObject> objects = new ArrayList<>();
-    for (int i = 0; i < count; i++) {
-      objects.add(createObject(nsUri, className));
-    }
-    log.info("Created {} {} instances", count, className);
-    return objects;
+  /** 获取所有对象 */
+  public List<EObject> getAllObjects() {
+    List<EObject> allObjects = new ArrayList<>();
+    allObjects.addAll(localResource.getContents());
+    return allObjects;
+  }
+
+  /** 获取统计信息 */
+  public Map<String, Object> getStatistics() {
+    Map<String, Object> stats = new HashMap<>();
+    stats.put("totalObjects", localResource.getContents().size());
+    stats.put("cachedObjects", objectCache.size());
+    stats.put("mode", "LOCAL");
+    stats.put("cdoEnabled", false);
+    return stats;
   }
 }

@@ -29,4 +29,3 @@ public class GlobalExceptionHandler {
                 "details", ex.getClass().getSimpleName()));
   }
 }
-

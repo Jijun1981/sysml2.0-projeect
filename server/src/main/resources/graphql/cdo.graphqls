@@ -1,0 +1,87 @@
+# CDO相关GraphQL Schema定义
+
+scalar CDOObjectID
+
+type Query {
+  # CDO查询
+  cdoObject(cdoId: CDOObjectID!): CDOObjectInfo
+  cdoResources: [CDOResourceInfo!]!
+  cdoHealth: CDOHealthStatus!
+}
+
+type Mutation {
+  # CDO操作
+  persistToCDO(elementId: ID!, resourcePath: String!): PersistToCDOPayload!
+  loadFromCDO(cdoId: CDOObjectID!): LoadFromCDOPayload!
+  cdoCommit(message: String): CDOCommitPayload!
+}
+
+type Subscription {
+  cdoChanged: CDOChangeEvent!
+}
+
+# CDO健康状态
+type CDOHealthStatus {
+  enabled: Boolean!
+  repositoryState: String!
+  repositoryActive: Boolean!
+  sessionOpen: Boolean!
+  packageCount: Int!
+  containerActive: Boolean!
+}
+
+type CDOObjectInfo {
+  cdoId: CDOObjectID!
+  state: String!
+  revision: Int!
+  resourcePath: String!
+  elementType: String!
+}
+
+type CDOResourceInfo {
+  path: String!
+  uri: String!
+  objectCount: Int!
+  lastModified: String
+}
+
+type PersistToCDOPayload {
+  ok: Boolean!
+  error: Error
+  cdoId: CDOObjectID
+  resourcePath: String
+}
+
+type LoadFromCDOPayload {
+  ok: Boolean!
+  error: Error
+  elementId: ID
+}
+
+type CDOCommitPayload {
+  ok: Boolean!
+  error: Error
+  commitTime: String
+  revision: Int
+}
+
+type CDOChangeEvent {
+  type: CDOChangeType!
+  cdoId: CDOObjectID!
+  resourcePath: String!
+  revision: Int!
+  timestamp: String!
+  userName: String
+}
+
+enum CDOChangeType {
+  COMMITTED
+  ROLLED_BACK
+  DETACHED
+  CONFLICT
+}
+
+type Error {
+  code: String!
+  message: String!
+}

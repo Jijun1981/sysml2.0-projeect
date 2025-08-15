@@ -35,6 +35,3 @@ public abstract class AbstractPostgresIT {
     registry.add("spring.datasource.password", POSTGRES::getPassword);
   }
 }
-
-
-

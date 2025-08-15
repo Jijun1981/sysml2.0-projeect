@@ -17,4 +17,3 @@ class TraceIdFilterTest {
     assertNotNull(res.getHeader("X-Trace-Id"));
   }
 }
-

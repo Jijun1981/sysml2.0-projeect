@@ -39,4 +39,3 @@ class RequirementsTDDIT {
     assertThat(list.getBody()).contains("RQ-1");
   }
 }
-

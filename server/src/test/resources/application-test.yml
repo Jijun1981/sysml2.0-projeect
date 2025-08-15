@@ -1,9 +1,17 @@
-# 测试配置 - 使用Testcontainers
+# 测试配置 - 使用本地PostgreSQL
 spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/sysml_test_db
+    username: sysml_user
+    password: sysml_password
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: create-drop  # 测试时重建表
     show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
     
 # CDO配置
 cdo:

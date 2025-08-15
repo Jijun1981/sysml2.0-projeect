@@ -13,20 +13,19 @@ import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:postgresql://localhost:5432/sysml_test_db",
-    "spring.datasource.username=sysml_user",
-    "spring.datasource.password=sysml_password",
-    "spring.jpa.hibernate.ddl-auto=create-drop",
-    "cdo.store.drop-on-activate=true"
-})
+@TestPropertySource(
+    properties = {
+      "spring.datasource.url=jdbc:postgresql://localhost:5432/sysml_test_db",
+      "spring.datasource.username=sysml_user",
+      "spring.datasource.password=sysml_password",
+      "spring.jpa.hibernate.ddl-auto=create-drop",
+      "cdo.store.drop-on-activate=true"
+    })
 class HealthControllerIT {
 
-  @LocalServerPort 
-  int port;
+  @LocalServerPort int port;
 
-  @Autowired
-  TestRestTemplate rest;
+  @Autowired TestRestTemplate rest;
 
   @Test
   void healthShouldReturnUp() {

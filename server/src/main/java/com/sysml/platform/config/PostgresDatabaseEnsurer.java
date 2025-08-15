@@ -56,4 +56,3 @@ public class PostgresDatabaseEnsurer {
     return slash > 0 ? tail.substring(0, slash) : tail;
   }
 }
-

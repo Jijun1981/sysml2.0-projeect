@@ -1,67 +1,60 @@
-"""
-Requirements domain minimal contract for P1
-"""
-
-interface Node { id: ID! }
-
-type RequirementDefinition implements Node {
-  id: ID!
-  reqId: String!
-  name: String!
-  text: String
-  parent: RequirementDefinition
-  children: [RequirementDefinition!]!
-}
-
-type RequirementsPage {
-  items: [RequirementDefinition!]!
-  total: Int!
-  page: Int!
-  size: Int!
-}
-
-interface MutationPayload { ok: Boolean!, error: String }
-
-type CreateRequirementPayload implements MutationPayload {
-  ok: Boolean!
-  error: String
-  requirement: RequirementDefinition
-}
-
-type UpdateRequirementPayload implements MutationPayload {
-  ok: Boolean!
-  error: String
-  requirement: RequirementDefinition
-}
-
-type DeletePayload implements MutationPayload {
-  ok: Boolean!
-  error: String
-  deletedId: ID
-}
+# 需求域 GraphQL Schema
+# 符合 EP-REQ 需求：需求CRUD、层次(derive/refine)、查询
 
 extend type Query {
-  requirement(id: ID!): RequirementDefinition
-  requirements(page: Int = 1, size: Int = 20): RequirementsPage!
-}
-
-input CreateRequirementInput {
-  reqId: String!
-  name: String!
-  text: String
-  parentId: ID
-}
-
-input UpdateRequirementInput {
-  name: String
-  text: String
+    # 查询所有需求
+    requirements: [Requirement!]!
+    
+    # 根据 reqId 查询单个需求
+    requirement(reqId: String!): Requirement
 }
 
 extend type Mutation {
-  createRequirement(input: CreateRequirementInput!): CreateRequirementPayload!
-  updateRequirement(id: ID!, input: UpdateRequirementInput!): UpdateRequirementPayload!
-  deleteRequirement(id: ID!): DeletePayload!
+    # 创建需求定义
+    createRequirement(input: CreateRequirementInput!): Requirement!
+    
+    # 添加 derive 关系（子需求派生自父需求）
+    addDeriveRelationship(childId: String!, parentId: String!): RelationshipResult!
+    
+    # 添加 refine 关系（细化关系）
+    addRefineRelationship(refiningId: String!, refinedId: String!): RelationshipResult!
 }
 
+# 需求类型
+type Requirement {
+    # 系统生成的唯一 ID
+    id: ID!
+    
+    # 业务需求 ID（如 REQ-001）
+    reqId: String!
+    
+    # 需求名称
+    name: String!
+    
+    # 需求文本描述
+    text: String
+    
+    # 派生的子需求
+    derivedRequirements: [String!]!
+}
 
+# 创建需求的输入
+input CreateRequirementInput {
+    # 业务需求 ID（必须唯一）
+    reqId: String!
+    
+    # 需求名称
+    name: String!
+    
+    # 需求文本描述
+    text: String
+}
 
+# 关系操作结果
+type RelationshipResult {
+    # 操作是否成功
+    success: Boolean!
+    
+    # 操作消息
+    message: String!
+}

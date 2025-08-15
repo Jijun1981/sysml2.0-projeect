@@ -16,7 +16,10 @@ import org.springframework.stereotype.Component;
 
 /** Requirements DataLoader - 批量加载需求，解决N+1查询问题 满足RQ-API-DATALOADER-003需求 */
 @Component
-@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(value = "features.requirements", havingValue = "true", matchIfMissing = true)
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+    value = "features.requirements",
+    havingValue = "true",
+    matchIfMissing = true)
 @RequiredArgsConstructor
 @Slf4j
 public class RequirementDataLoader implements BatchLoader<String, RequirementDefinition> {

@@ -48,6 +48,12 @@ metadata:
   roadmap_phases:
     - phase: Foundation
       epics: [EP-INFRA, EP-M2-PILOT, EP-API, EP-UI-BASE, EP-NFR]
+  
+  # GitHub认证配置
+  github_auth:
+    token: "${GITHUB_TOKEN}"
+    purpose: "用于访问Sirius Web私有Maven仓库"
+    usage: "export GITHUB_TOKEN=<your_token_here>"
       exit_criteria:
         - "CDO启动，健康检查UP"
         - "M2注册，round-trip通过"

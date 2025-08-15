@@ -8,4 +8,3 @@ public class UpdateRequirementInput {
   private String text;
   private String parentId; // 可以是UUID或"null"表示移除父节点
 }
-

@@ -15,14 +15,15 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest
 @AutoConfigureMockMvc
 @org.springframework.test.context.ActiveProfiles("test-nodb")
-@TestPropertySource(properties = {
-  "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.graphql.data.GraphQlQueryByExampleAutoConfiguration",
-  "spring.graphql.data.query-by-example.enabled=false",
-  "spring.data.jpa.repositories.enabled=false",
-  "CDO_ENABLED=false",
-  "features.requirements=false",
-  "features.graphql.schemaSnapshot=false"
-})
+@TestPropertySource(
+    properties = {
+      "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.graphql.data.GraphQlQueryByExampleAutoConfiguration",
+      "spring.graphql.data.query-by-example.enabled=false",
+      "spring.data.jpa.repositories.enabled=false",
+      "CDO_ENABLED=false",
+      "features.requirements=false",
+      "features.graphql.schemaSnapshot=false"
+    })
 class HealthQueryIT {
 
   @Autowired private MockMvc mockMvc;

@@ -11,7 +11,10 @@ import org.springframework.graphql.execution.GraphQlSource;
 import org.springframework.stereotype.Component;
 
 @Component
-@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(value = "features.graphql.schemaSnapshot", havingValue = "true", matchIfMissing = true)
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+    value = "features.graphql.schemaSnapshot",
+    havingValue = "true",
+    matchIfMissing = true)
 public class SchemaSnapshotWriter {
 
   private final GraphQlSource graphQlSource;

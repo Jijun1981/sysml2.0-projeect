@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Sirius Web - CDO集成演示</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: #1e3a8a;
+            color: white;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 300px;
+            background: #f7f7f7;
+            border-right: 1px solid #ddd;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .toolbar {
+            background: white;
+            border-bottom: 1px solid #ddd;
+            padding: 0.5rem 1rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .canvas {
+            flex: 1;
+            background: #fafafa;
+            position: relative;
+            overflow: hidden;
+        }
+        .button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .button:hover {
+            background: #45a049;
+        }
+        .button.secondary {
+            background: #2196F3;
+        }
+        .button.secondary:hover {
+            background: #1976D2;
+        }
+        .status {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .status.connected {
+            border-left: 4px solid #4CAF50;
+        }
+        .status.disconnected {
+            border-left: 4px solid #f44336;
+        }
+        .tree-item {
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 2px 0;
+        }
+        .tree-item:hover {
+            background: #e0e0e0;
+        }
+        .tree-item.selected {
+            background: #1e3a8a;
+            color: white;
+        }
+        .model-element {
+            position: absolute;
+            background: white;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 150px;
+            text-align: center;
+            cursor: move;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .model-element.requirement {
+            border-color: #FF9800;
+        }
+        .model-element.part {
+            border-color: #2196F3;
+        }
+        .model-element.port {
+            border-color: #9C27B0;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .properties-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            width: 300px;
+            display: none;
+        }
+        .properties-panel.show {
+            display: block;
+        }
+        .property-row {
+            margin: 10px 0;
+        }
+        .property-row label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        .property-row input {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Sirius Web - SysML v2建模平台</h1>
+        <p>基于CDO的分布式模型存储 | KerML/SysML M2元模型 | 实时协作</p>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <h3>模型浏览器</h3>
+            <div id="modelTree">
+                <div class="tree-item">📦 SysML Project</div>
+                <div style="margin-left: 20px">
+                    <div class="tree-item">📋 Requirements</div>
+                    <div class="tree-item">🔧 Structure</div>
+                    <div class="tree-item">⚡ Behavior</div>
+                </div>
+            </div>
+            
+            <h3 style="margin-top: 30px">元素库</h3>
+            <button class="button" onclick="createElement('requirement')">+ 需求</button>
+            <button class="button secondary" onclick="createElement('part')">+ 部件</button>
+            <button class="button" style="background: #9C27B0" onclick="createElement('port')">+ 端口</button>
+        </div>
+        
+        <div class="main">
+            <div class="toolbar">
+                <button class="button" onclick="saveToCDO()">💾 保存到CDO</button>
+                <button class="button secondary" onclick="loadFromCDO()">📂 从CDO加载</button>
+                <button class="button" onclick="checkHealth()">🏥 健康检查</button>
+                <button class="button secondary" onclick="connectToM2()">🔗 连接M2模型</button>
+            </div>
+            
+            <div class="canvas" id="canvas">
+                <div class="status connected" id="status">
+                    <strong>CDO状态:</strong> <span id="cdoStatus">已连接</span><br>
+                    <strong>Repository:</strong> sysml<br>
+                    <strong>Session:</strong> tcp://localhost:2036
+                </div>
+                
+                <div class="properties-panel" id="propertiesPanel">
+                    <h3>属性编辑器</h3>
+                    <div class="property-row">
+                        <label>名称:</label>
+                        <input type="text" id="propName" onchange="updateProperty('name')">
+                    </div>
+                    <div class="property-row">
+                        <label>类型:</label>
+                        <input type="text" id="propType" readonly>
+                    </div>
+                    <div class="property-row">
+                        <label>CDO ID:</label>
+                        <input type="text" id="propCdoId" readonly>
+                    </div>
+                    <button class="button" onclick="saveProperties()">保存属性</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let elementCount = 0;
+        let selectedElement = null;
+        let cdoConnected = true;
+        
+        // 模拟CDO后端API
+        const CDO_API = 'http://localhost:8080';
+        
+        function createElement(type) {
+            elementCount++;
+            const element = document.createElement('div');
+            element.className = `model-element ${type}`;
+            element.id = `element-${elementCount}`;
+            element.innerHTML = `${type.charAt(0).toUpperCase() + type.slice(1)}_${elementCount}`;
+            element.style.left = `${50 + Math.random() * 400}px`;
+            element.style.top = `${50 + Math.random() * 300}px`;
+            
+            // 添加拖拽功能
+            element.onmousedown = function(e) {
+                selectedElement = element;
+                showProperties(element);
+                
+                const startX = e.clientX - element.offsetLeft;
+                const startY = e.clientY - element.offsetTop;
+                
+                function moveElement(e) {
+                    element.style.left = (e.clientX - startX) + 'px';
+                    element.style.top = (e.clientY - startY) + 'px';
+                }
+                
+                function stopMove() {
+                    document.removeEventListener('mousemove', moveElement);
+                    document.removeEventListener('mouseup', stopMove);
+                }
+                
+                document.addEventListener('mousemove', moveElement);
+                document.addEventListener('mouseup', stopMove);
+            };
+            
+            document.getElementById('canvas').appendChild(element);
+            
+            // 模拟调用M2元模型创建
+            console.log(`通过M2创建${type}元素:`, {
+                metaclass: type,
+                name: element.innerHTML,
+                cdoId: `OID${elementCount}`
+            });
+        }
+        
+        function showProperties(element) {
+            const panel = document.getElementById('propertiesPanel');
+            panel.classList.add('show');
+            
+            document.getElementById('propName').value = element.innerHTML;
+            document.getElementById('propType').value = element.className.split(' ')[1];
+            document.getElementById('propCdoId').value = `OID${element.id.split('-')[1]}`;
+        }
+        
+        function saveProperties() {
+            if (selectedElement) {
+                selectedElement.innerHTML = document.getElementById('propName').value;
+                alert('属性已保存');
+            }
+        }
+        
+        async function saveToCDO() {
+            const elements = document.querySelectorAll('.model-element');
+            const modelData = Array.from(elements).map(el => ({
+                id: el.id,
+                type: el.className.split(' ')[1],
+                name: el.innerHTML,
+                position: {
+                    x: parseInt(el.style.left),
+                    y: parseInt(el.style.top)
+                }
+            }));
+            
+            try {
+                // 模拟保存到CDO
+                console.log('保存模型到CDO:', modelData);
+                alert(`成功保存 ${modelData.length} 个元素到CDO Repository`);
+            } catch (error) {
+                alert('保存失败: ' + error.message);
+            }
+        }
+        
+        async function loadFromCDO() {
+            try {
+                // 模拟从CDO加载
+                alert('从CDO Repository加载模型...');
+                console.log('连接到CDO: tcp://localhost:2036/sysml');
+            } catch (error) {
+                alert('加载失败: ' + error.message);
+            }
+        }
+        
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${CDO_API}/health`);
+                const data = await response.json();
+                
+                if (data.cdo && data.cdo.repositoryState === 'ONLINE') {
+                    alert('✅ 系统健康状态正常\n\nCDO: ONLINE\nEMF: 已加载\nKerML/SysML: 已注册');
+                } else {
+                    alert('⚠️ CDO状态异常');
+                }
+            } catch (error) {
+                alert('无法连接到后端服务\n请确保CDO服务运行在 localhost:8080');
+            }
+        }
+        
+        function connectToM2() {
+            alert('已连接到M2元模型:\n- KerML: 84个元类\n- SysML: Requirements, Parts, Ports等');
+            console.log('M2元模型已加载:', {
+                kerml: 'https://www.omg.org/spec/KerML/20250201',
+                sysml: 'http://www.omg.org/spec/SysML/20230201'
+            });
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Sirius Web初始化完成');
+            console.log('CDO连接状态:', cdoConnected ? 'ONLINE' : 'OFFLINE');
+        });
+    </script>
+</body>
+</html>

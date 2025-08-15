@@ -11,7 +11,10 @@ import org.springframework.graphql.execution.DataLoaderRegistrar;
 /** DataLoader配置 - 解决GraphQL N+1查询问题 */
 @Configuration
 @RequiredArgsConstructor
-@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(value = "features.requirements", havingValue = "true", matchIfMissing = true)
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+    value = "features.requirements",
+    havingValue = "true",
+    matchIfMissing = true)
 public class DataLoaderConfig {
 
   private final RequirementDataLoader requirementDataLoader;

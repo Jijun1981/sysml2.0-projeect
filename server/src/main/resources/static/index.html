@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SysML v2 Platform - Sirius Web</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+            max-width: 800px;
+            width: 90%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        .status {
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 15px;
+        }
+        .status-indicator.success {
+            background: #4CAF50;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+        .status-indicator.warning {
+            background: #FF9800;
+            box-shadow: 0 0 10px rgba(255, 152, 0, 0.5);
+        }
+        .status-indicator.error {
+            background: #f44336;
+            box-shadow: 0 0 10px rgba(244, 67, 54, 0.5);
+        }
+        .endpoints {
+            margin-top: 30px;
+        }
+        .endpoints h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        .endpoint-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .endpoint-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .endpoint-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .endpoint-item:last-child {
+            margin-bottom: 0;
+        }
+        .endpoint-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .endpoint-url {
+            font-family: 'Courier New', monospace;
+            background: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        .components {
+            margin-top: 30px;
+        }
+        .components h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .component-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .component-card:hover {
+            transform: scale(1.05);
+        }
+        .component-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        .test-button:hover {
+            background: #45a049;
+        }
+        #test-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f0f0f0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 SysML v2 Platform</h1>
+        <p class="subtitle">Powered by Sirius Web 2025.8.0</p>
+        
+        <div class="status">
+            <div class="status-item">
+                <span class="status-indicator success"></span>
+                <span>✅ Server Running on Port 8080</span>
+            </div>
+            <div class="status-item">
+                <span class="status-indicator success"></span>
+                <span>✅ PostgreSQL Database Connected</span>
+            </div>
+            <div class="status-item">
+                <span class="status-indicator success"></span>
+                <span>✅ EMF Model Manager Initialized</span>
+            </div>
+            <div class="status-item">
+                <span class="status-indicator success"></span>
+                <span>✅ SysML/KerML/Types Ecore Packages Loaded</span>
+            </div>
+        </div>
+
+        <div class="endpoints">
+            <h2>Available Endpoints</h2>
+            <div class="endpoint-list">
+                <div class="endpoint-item">
+                    <div class="endpoint-title">GraphQL API</div>
+                    <div>Main API for all operations</div>
+                    <span class="endpoint-url">/graphql</span>
+                </div>
+                <div class="endpoint-item">
+                    <div class="endpoint-title">Alternative GraphQL</div>
+                    <div>Alternative endpoint path</div>
+                    <span class="endpoint-url">/api/graphql</span>
+                </div>
+                <div class="endpoint-item">
+                    <div class="endpoint-title">Health Check</div>
+                    <div>System health status</div>
+                    <span class="endpoint-url">/actuator/health</span>
+                </div>
+                <div class="endpoint-item">
+                    <div class="endpoint-title">Demo Page</div>
+                    <div>M2 Model demonstration</div>
+                    <span class="endpoint-url">/sirius-m2-demo.html</span>
+                </div>
+                <div class="endpoint-item" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <div class="endpoint-title" style="color: white;">🎨 Requirements Canvas</div>
+                    <div>Interactive SysML Requirements Diagram Editor</div>
+                    <a href="/canvas.html" style="color: white; text-decoration: none;">
+                        <span class="endpoint-url" style="background: rgba(255,255,255,0.2);">/canvas.html</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="components">
+            <h2>Sirius Web Components</h2>
+            <div class="component-grid">
+                <div class="component-card">
+                    <div class="component-icon">📋</div>
+                    <div>Requirements View</div>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon">📊</div>
+                    <div>Diagrams</div>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon">🌳</div>
+                    <div>Tree Explorer</div>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon">📝</div>
+                    <div>Forms</div>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon">📈</div>
+                    <div>Validation</div>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon">🔗</div>
+                    <div>CDO Integration</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="test-button" onclick="testGraphQL()">Test GraphQL Connection</button>
+        <div id="test-result"></div>
+    </div>
+
+    <script>
+        async function testGraphQL() {
+            const resultDiv = document.getElementById('test-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing GraphQL endpoint...';
+            
+            try {
+                const response = await fetch('/graphql', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: '{ __schema { types { name } } }'
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.data && data.data.__schema) {
+                    const typeCount = data.data.__schema.types.length;
+                    resultDiv.innerHTML = `✅ GraphQL is working! Found ${typeCount} types in schema.`;
+                    resultDiv.style.background = '#d4edda';
+                    resultDiv.style.color = '#155724';
+                } else {
+                    resultDiv.innerHTML = '⚠️ GraphQL responded but with unexpected format';
+                    resultDiv.style.background = '#fff3cd';
+                    resultDiv.style.color = '#856404';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `❌ Error: ${error.message}`;
+                resultDiv.style.background = '#f8d7da';
+                resultDiv.style.color = '#721c24';
+            }
+        }
+    </script>
+</body>
+</html>

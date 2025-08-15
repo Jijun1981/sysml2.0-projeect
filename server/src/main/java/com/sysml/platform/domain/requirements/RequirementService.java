@@ -14,7 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 /** 需求域服务 - 实现完整的CRUD和层次管理 */
 @Service
-@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(value = "features.requirements", havingValue = "true", matchIfMissing = true)
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+    value = "features.requirements",
+    havingValue = "true",
+    matchIfMissing = true)
 @RequiredArgsConstructor
 @Slf4j
 @Transactional(readOnly = true)

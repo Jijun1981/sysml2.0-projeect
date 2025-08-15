@@ -1,16 +1,18 @@
 package com.sysml.platform;
 
-import com.sysml.platform.infrastructure.cdo.LocalEcoreLoader;
+import com.sysml.platform.infrastructure.emf.LocalEcoreLoader;
 import java.util.List;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.event.EventListener;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /** SysML v2 建模平台启动类 */
 @SpringBootApplication
 @EnableTransactionManagement
+@ComponentScan(basePackages = { "com.sysml.platform", "org.eclipse.sirius.web", "org.eclipse.sirius.components" })
 public class Application {
   public static void main(String[] args) {
     SpringApplication.run(Application.class, args);

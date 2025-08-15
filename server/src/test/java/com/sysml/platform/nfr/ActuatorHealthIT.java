@@ -2,7 +2,6 @@ package com.sysml.platform.nfr;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.sysml.platform.testsupport.AbstractPostgresIT;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -11,11 +10,12 @@ import org.springframework.http.ResponseEntity;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @org.springframework.test.context.ActiveProfiles("test-nodb")
-@org.springframework.test.context.TestPropertySource(properties = {
-  "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration",
-  "CDO_ENABLED=false",
-  "features.requirements=false"
-})
+@org.springframework.test.context.TestPropertySource(
+    properties = {
+      "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration",
+      "CDO_ENABLED=false",
+      "features.requirements=false"
+    })
 class ActuatorHealthIT {
 
   @LocalServerPort int port;

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试Sirius Web渲染</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .test { margin: 20px 0; padding: 15px; border: 2px solid #ccc; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        iframe { width: 100%; height: 600px; border: 2px solid blue; }
+    </style>
+</head>
+<body>
+    <h1>Sirius Web渲染测试</h1>
+    
+    <div class="test">
+        <h3>1. 测试iframe加载</h3>
+        <p>下面的框架应该显示Sirius Web内容：</p>
+        <iframe id="testFrame" src="http://localhost:5173"></iframe>
+    </div>
+    
+    <div class="test">
+        <h3>2. 直接测试React渲染</h3>
+        <div id="test-root"></div>
+    </div>
+    
+    <div class="test">
+        <h3>3. 检查结果</h3>
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        // 测试1: 检查iframe内容
+        const frame = document.getElementById('testFrame');
+        frame.onload = () => {
+            console.log('Frame loaded');
+            document.getElementById('results').innerHTML += '<p>✅ iframe加载成功</p>';
+            
+            // 尝试访问iframe内容（可能因跨域失败）
+            try {
+                const frameDoc = frame.contentDocument || frame.contentWindow.document;
+                const rootDiv = frameDoc.getElementById('root');
+                if (rootDiv && rootDiv.innerHTML.trim() !== '') {
+                    document.getElementById('results').innerHTML += '<p class="success">✅ React已渲染内容到root div</p>';
+                } else {
+                    document.getElementById('results').innerHTML += '<p class="error">❌ root div是空的</p>';
+                }
+            } catch (e) {
+                document.getElementById('results').innerHTML += '<p>⚠️ 跨域限制，无法检查iframe内容</p>';
+            }
+        };
+        
+        // 测试2: 直接加载React
+        import('http://localhost:5173/node_modules/.vite/deps/react-dom_client.js')
+            .then(module => {
+                const { createRoot } = module;
+                const testRoot = document.getElementById('test-root');
+                const root = createRoot(testRoot);
+                root.render('✅ React直接渲染成功');
+                document.getElementById('results').innerHTML += '<p class="success">✅ React模块加载成功</p>';
+            })
+            .catch(err => {
+                document.getElementById('results').innerHTML += '<p class="error">❌ React模块加载失败: ' + err + '</p>';
+            });
+        
+        // 测试3: 获取页面源码
+        fetch('http://localhost:5173')
+            .then(res => res.text())
+            .then(html => {
+                if (html.includes('root')) {
+                    document.getElementById('results').innerHTML += '<p>✅ HTML包含root元素</p>';
+                }
+                if (html.includes('index.tsx')) {
+                    document.getElementById('results').innerHTML += '<p>✅ HTML引用了index.tsx</p>';
+                }
+            })
+            .catch(err => {
+                document.getElementById('results').innerHTML += '<p class="error">❌ 无法获取页面: ' + err + '</p>';
+            });
+        
+        // 测试4: 检查index.tsx是否加载
+        fetch('http://localhost:5173/src/index.tsx')
+            .then(res => res.text())
+            .then(code => {
+                if (code.includes('MinimalApp')) {
+                    document.getElementById('results').innerHTML += '<p class="success">✅ index.tsx包含MinimalApp组件</p>';
+                }
+                if (code.includes('React已加载')) {
+                    document.getElementById('results').innerHTML += '<p class="success">✅ index.tsx包含标记代码</p>';
+                }
+            })
+            .catch(err => {
+                document.getElementById('results').innerHTML += '<p class="error">❌ 无法加载index.tsx: ' + err + '</p>';
+            });
+    </script>
+</body>
+</html>

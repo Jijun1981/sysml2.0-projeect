@@ -1,8 +1,12 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.2.0'
+    id 'org.springframework.boot' version '3.5.0'
     id 'io.spring.dependency-management' version '1.1.4'
     id 'com.diffplug.spotless' version '6.23.3'
+}
+
+springBoot {
+    mainClass = 'com.sysml.platform.Application'
 }
 
 def skipCDO = project.hasProperty('skipCDO') && project.property('skipCDO').toString().toBoolean()
@@ -30,25 +34,43 @@ repositories {
     maven { url 'https://repo.eclipse.org/content/groups/releases/' }
     maven { url 'https://repo.eclipse.org/content/groups/modeling/' }
     maven { url 'https://repo.eclipse.org/content/repositories/cdo-releases/' }
+    
+    // Sirius Web GitHub packages (需要认证)
+    maven {
+        url 'https://maven.pkg.github.com/eclipse-sirius/sirius-web'
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_USERNAME") ?: "token"
+            password = project.findProperty("gpr.token") ?: System.getenv("GITHUB_TOKEN") ?: ""
+        }
+    }
+    maven {
+        url 'https://maven.pkg.github.com/eclipse-sirius/sirius-emf-json'
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GITHUB_USERNAME") ?: "token"
+            password = project.findProperty("gpr.token") ?: System.getenv("GITHUB_TOKEN") ?: ""
+        }
+    }
 }
 
 dependencies {
-    // Spring Boot
+    // Spring Boot (匹配SysON的最小依赖)
+    implementation 'org.springframework.boot:spring-boot-starter'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-graphql'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     
-    // GraphQL
-    implementation 'com.graphql-java:graphql-java-extended-scalars:21.0'
-    implementation 'com.graphql-java:java-dataloader:3.2.0'
+    // 通过Sirius Web提供GraphQL支持，不单独引入
+    // GraphQL功能由sirius-web-starter提供
     
     // EMF core (always required for local Ecore loading)
     implementation 'org.eclipse.emf:org.eclipse.emf.ecore:2.35.0'
     implementation 'org.eclipse.emf:org.eclipse.emf.common:2.29.0'
     implementation 'org.eclipse.emf:org.eclipse.emf.ecore.xmi:2.35.0'
     implementation 'org.eclipse.emf:org.eclipse.emf.ecore.change:2.14.0'
+    
+    // Sirius Web (与SysON完全一致的版本)
+    implementation('org.eclipse.sirius:sirius-web-starter:2025.8.0')
 
     // CDO (optional; can be skipped via -PskipCDO=true)
     if (!skipCDO) {
@@ -89,6 +111,7 @@ tasks.named('test') {
 // Spring Boot jar naming to match scripts
 tasks.named('bootJar') {
     archiveBaseName = 'sysml-platform'
+    mainClass = 'com.sysml.platform.Application'
 }
 
 // 架构测试
